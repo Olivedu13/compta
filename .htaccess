@@ -1,0 +1,32 @@
+# ========================================
+# .htaccess racine /compta
+# Routing pour API et SPA React
+# ========================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /compta/
+    
+    # Bloquer accès aux dossiers sensibles
+    RewriteRule ^\.env$ - [F]
+    RewriteRule ^\.git - [F]
+    RewriteRule ^backend - [F]
+    
+    # API routing
+    RewriteCond %{REQUEST_URI} ^/compta/api/ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.*)$ public_html/api/index.php [L,QSA]
+    
+    # SPA routing (tout -> public_html/index.html sauf API et assets)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/compta/api/ [NC]
+    RewriteRule ^.*$ public_html/index.html [QSA,L]
+</IfModule>
+
+# Sécurité
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>

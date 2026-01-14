@@ -1,0 +1,16 @@
+.env
+.env.local
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+.parcel-cache/
+public_html/assets/*
+!public_html/assets/.gitkeep
