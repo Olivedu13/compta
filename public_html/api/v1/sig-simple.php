@@ -1,6 +1,6 @@
 <?php
 /**
- * GET /api/v1/accounting/sig
+ * GET /api/v1/sig-simple.php
  * Calcule les Soldes Intermédiaires de Gestion (SIG)
  * Self-contained - No dependencies
  * 
@@ -20,15 +20,13 @@ try {
     }
     
     // Get DB
-    if (!isset($db)) {
-        $projectRoot = dirname(dirname(dirname(dirname(__FILE__))));
-        $dbPath = $projectRoot . '/compta.db';
-        if (!file_exists($dbPath)) {
-            throw new Exception("Database not found");
-        }
-        $db = new PDO('sqlite:' . $dbPath);
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $projectRoot = dirname(dirname(dirname(dirname(__FILE__))));
+    $dbPath = $projectRoot . '/compta.db';
+    if (!file_exists($dbPath)) {
+        throw new Exception("Database not found");
     }
+    $db = new PDO('sqlite:' . $dbPath);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // Query all ecritures for the exercice
     $stmt = $db->prepare("

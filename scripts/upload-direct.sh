@@ -24,12 +24,22 @@ cat > "$SFTP_BATCH" << 'EOF'
 # Aller dans le dossier compta existant
 cd compta
 
+# Create directories
+-mkdir public_html/api/v1
+-mkdir public_html/api/v1/accounting
+-mkdir public_html/api/v1/analytics
+-mkdir public_html/api/v1/balance
+-mkdir public_html/api/v1/years
+
 # Public HTML - fichiers utiles
 put /workspaces/compta/public_html/.htaccess public_html/.htaccess
 put /workspaces/compta/public_html/.user.ini public_html/.user.ini
 put /workspaces/compta/public_html/index.html public_html/index.html
 put /workspaces/compta/public_html/api/index.php public_html/api/index.php
 put /workspaces/compta/simple-import-STANDALONE.php public_html/api/simple-import.php
+put /workspaces/compta/public_html/api/v1/index.php public_html/api/v1/index.php
+put /workspaces/compta/public_html/api/v1/sig-simple.php public_html/api/v1/sig-simple.php
+put /workspaces/compta/public_html/api/v1/accounting/sig.php public_html/api/v1/accounting/sig.php
 put /workspaces/compta/compta.db compta.db
 put /workspaces/compta/public_html/assets/index.js public_html/assets/index.js
 put /workspaces/compta/public_html/annees-simple.php public_html/annees-simple.php

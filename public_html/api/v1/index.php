@@ -1,37 +1,31 @@
 <?php
 /**
- * API v1 Router - Point d'entrée centralisé
- * 
- * Route les requêtes vers les endpoints appropriés
- * Pattern: /api/v1/{resource}/{action}
- * 
- * Examples:
- * - GET /api/v1/accounting/years
- * - GET /api/v1/accounting/balance?exercice=2024
- * - GET /api/v1/accounting/ledger?exercice=2024
- * - POST /api/v1/accounting/import
- * - GET /api/v1/analytics/kpis?exercice=2024
- * - GET /api/v1/users/profile (requiert JWT)
+ * API v1 Router - Self-Contained (No dependencies)
+ * Routes les requêtes vers les endpoints appropriés
  */
-
-require_once dirname(dirname(dirname(__FILE__))) . '/backend/bootstrap.php';
-
-use App\Config\Logger;
 
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // Récupère l'URI et parse la route
-    // Utilise REQUEST_URI ou ORIG_REQUEST_URI (Apache rewrite)
+    // Get DB connection
+    $projectRoot = dirname(dirname(dirname(__FILE__)));
+    $dbPath = $projectRoot . '/compta.db';
+    
+    if (!file_exists($dbPath)) {
+        throw new Exception("Database not found");
+    }
+    
+    $db = new PDO('sqlite:' . $dbPath);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Parse request
     $uri = $_SERVER['REQUEST_URI'] ?? $_SERVER['ORIG_REQUEST_URI'] ?? '';
     $uri = parse_url($uri, PHP_URL_PATH);
     $basePath = '/api/v1';
     
-    // Extrait la route relative
     $relativePath = str_replace($basePath, '', $uri);
     $segments = array_filter(explode('/', $relativePath));
     
-    // Si pas de segments, utilise 'years' par défaut pour accounting
     if (empty($segments)) {
         $resource = 'accounting';
         $action = 'years';
@@ -40,16 +34,19 @@ try {
         $action = array_shift($segments) ?? 'index';
     }
     
-    // Map les ressources vers les fichiers
+    // Route to file-based handler
     $routeFile = __DIR__ . '/' . $resource . '/' . $action . '.php';
     
-    // Sécurité: empêcher les path traversal
-    if (!file_exists($routeFile) || !is_file($routeFile)) {
+    if (!file_exists($routeFile)) {
         http_response_code(404);
-        throw new Exception("Route not found: {$resource}/{$action}");
+        echo json_encode([
+            'success' => false,
+            'error' => "Route not found: {$resource}/{$action}"
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     
-    // Charge et exécute le fichier route
+    // Include route file and pass $db
     include $routeFile;
     
 } catch (Exception $e) {
@@ -57,6 +54,5 @@ try {
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
-    ]);
-    Logger::error('API Error', ['message' => $e->getMessage()]);
+    ], JSON_UNESCAPED_UNICODE);
 }
