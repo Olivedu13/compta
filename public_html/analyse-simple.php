@@ -1,8 +1,15 @@
 <?php
-require_once dirname(dirname(__FILE__)) . '/backend/bootstrap.php';
-
-use App\Config\Database;
-use App\Config\InputValidator;
+/**
+ * ⚠️ DÉPRÉCIÉ - Endpoint migré vers /api/v1/
+ * Nouvel endpoint: GET /api/v1/analytics/simple.php
+ */
+$queryString = http_build_query($_GET);
+$newUrl = '/api/v1/analytics/simple.php' . ($queryString ? '?' . $queryString : '');
+http_response_code(301);
+header('Location: ' . $newUrl);
+header('X-Deprecated: true');
+header('X-Migration: Endpoint moved to /api/v1/analytics/simple.php');
+exit;
 use App\Config\Logger;
 
 header('Content-Type: application/json; charset=utf-8');

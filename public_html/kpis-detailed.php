@@ -1,5 +1,19 @@
 <?php
 /**
+ * ⚠️ DÉPRÉCIÉ - Endpoint migré vers /api/v1/
+ * Nouvel endpoint: GET /api/v1/kpis/detailed.php
+ */
+$queryString = http_build_query($_GET);
+$newUrl = '/api/v1/kpis/detailed.php' . ($queryString ? '?' . $queryString : '');
+http_response_code(301);
+header('Location: ' . $newUrl);
+header('X-Deprecated: true');
+header('X-Migration: Endpoint moved to /api/v1/kpis/detailed.php');
+exit;
+
+// Code legacy conservé pour référence:
+/*
+/**
  * KPIs détaillés avec vrais comptes
  */
 

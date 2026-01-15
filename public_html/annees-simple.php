@@ -1,40 +1,20 @@
 <?php
 /**
- * API Années - Liste les années disponibles
+ * ⚠️ DÉPRÉCIÉ - Endpoint migré vers /api/v1/
+ * 
+ * Ce fichier redirige automatiquement vers le nouvel endpoint
+ * pour maintenir la compatibilité rétroactive.
+ * 
+ * Nouvel endpoint: GET /api/v1/years/list.php
  */
 
-require_once dirname(dirname(__FILE__)) . '/backend/bootstrap.php';
+$queryString = http_build_query($_GET);
+$newUrl = '/api/v1/years/list.php' . ($queryString ? '?' . $queryString : '');
 
-use App\Config\Database;
-use App\Config\InputValidator;
-use App\Config\Logger;
+http_response_code(301); // Moved Permanently
+header('Location: ' . $newUrl);
+header('X-Deprecated: true');
+header('X-Migration: Endpoint moved to /api/v1/years/list.php');
 
-header('Content-Type: application/json; charset=utf-8');
+exit;
 
-try {
-    $db = getDatabase();
-    
-    // Récupère toutes les années disponibles
-    $annees = $db->fetchAll("
-        SELECT DISTINCT exercice 
-        FROM fin_balance 
-        ORDER BY exercice DESC
-    ");
-    
-    $result = array_column($annees, 'exercice');
-    
-    http_response_code(200);
-    echo json_encode([
-        'success' => true,
-        'data' => $result
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
-}
-
-?>

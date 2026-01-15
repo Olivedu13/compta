@@ -1,5 +1,19 @@
 <?php
 /**
+ * ⚠️ DÉPRÉCIÉ - Endpoint migré vers /api/v1/
+ * Nouvel endpoint: GET /api/v1/kpis/simple.php
+ */
+$queryString = http_build_query($_GET);
+$newUrl = '/api/v1/kpis/simple.php' . ($queryString ? '?' . $queryString : '');
+http_response_code(301);
+header('Location: ' . $newUrl);
+header('X-Deprecated: true');
+header('X-Migration: Endpoint moved to /api/v1/kpis/simple.php');
+exit;
+
+// Code legacy conservé pour référence:
+/*
+/**
  * API KPIs - PDO direct
  */
 
