@@ -137,7 +137,7 @@ export default function SIGPage() {
 
   // Préparer données périodes pour comparaison
   const periodeData = cashflow?.par_periode?.map(p => ({
-    periode: p.periode.split('-')[1],
+    periode: (p.periode || '').split('-')[1] || p.periode || 'N/A',
     entrees: p.entrees,
     sorties: p.sorties,
     flux_net: p.flux_net

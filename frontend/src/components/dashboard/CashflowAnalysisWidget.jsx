@@ -123,7 +123,7 @@ export default function CashflowAnalysisWidget({ exercice }) {
 
   // Préparer données pour graphique périodes
   const periodeData = cashflow?.par_periode?.map(p => ({
-    periode: p.periode.split('-')[1] || p.periode,
+    periode: (p.periode || '').split('-')[1] || p.periode || 'N/A',
     entrees: p.entrees,
     sorties: p.sorties,
     comptes: p.nb_comptes,
