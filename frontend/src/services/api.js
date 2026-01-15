@@ -57,7 +57,7 @@ export const apiService = {
   // ========================================
 
   getBalance(exercice, page = 1, limit = 100) {
-    return axios.get(`/balance-simple.php?exercice=${exercice}&page=${page}&limit=${limit}`);
+    return api.get(`/v1/balance/simple.php?exercice=${exercice}&page=${page}&limit=${limit}`);
   },
 
   getEcritures(exercice, { page = 1, limit = 50, compte = null, journal = null, dateDebut = null, dateFin = null } = {}) {
@@ -78,27 +78,27 @@ export const apiService = {
   // ========================================
 
   getSIG(exercice) {
-    return axios.get(`/sig-simple.php?exercice=${exercice}`);
+    return api.get(`/v1/sig/simple.php?exercice=${exercice}`);
   },
 
   getSIGDetail(exercice) {
-    return axios.get(`/sig-simple.php?exercice=${exercice}`);
+    return api.get(`/v1/sig/simple.php?exercice=${exercice}`);
   },
 
   getKPIs(exercice) {
-    return axios.get(`/kpis-simple.php?exercice=${exercice}`);
+    return api.get(`/v1/kpis/simple.php?exercice=${exercice}`);
   },
 
   getKPIsDetailed(exercice) {
-    return axios.get(`/kpis-detailed.php?exercice=${exercice}`);
+    return api.get(`/v1/kpis/detailed.php?exercice=${exercice}`);
   },
 
   getAnalyse(exercice) {
-    return axios.get(`/analyse-simple.php?exercice=${exercice}`);
+    return api.get(`/v1/analytics/simple.php?exercice=${exercice}`);
   },
 
   getAnalyticsAdvanced(exercice) {
-    return axios.get(`/analytics-advanced.php?exercice=${exercice}`);
+    return api.get(`/v1/analytics/advanced.php?exercice=${exercice}`);
   },
 
   // ========================================
@@ -159,7 +159,7 @@ export const apiService = {
   // ========================================
 
   getAnnees() {
-    return axios.get('/annees-simple.php');
+    return api.get('/v1/years/list.php');
   },
 
   getAnneeExists(annee) {
