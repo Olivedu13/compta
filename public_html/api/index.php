@@ -20,6 +20,8 @@ header('Content-Type: application/json; charset=utf-8');
 // ========================================
 
 use App\Config\Router;
+use App\Config\Database;
+use App\Config\Logger;
 use App\Services\ImportService;
 use App\Services\SigCalculator;
 
@@ -43,7 +45,7 @@ try {
         
         $tables = [
             'fin_balance' => 0,
-            'fin_ecritures_fec' => 0,
+            'ecritures' => 0,
             'sys_plan_comptable' => 0
         ];
         
@@ -143,7 +145,7 @@ try {
         $dateFin = $_GET['date_fin'] ?? null;
         
         // Filtre
-        $sql = "SELECT * FROM fin_ecritures_fec WHERE exercice = ?";
+        $sql = "SELECT * FROM ecritures WHERE exercice = ?";
         $params = [$exercice];
         
         if ($compte) {
@@ -222,7 +224,7 @@ try {
                 $year = (int) $row['exercice'];
                 // Compte les écritures pour chaque année
                 $count = $db->fetchOne(
-                    "SELECT COUNT(*) as cnt FROM fin_ecritures_fec WHERE exercice = ?",
+                    "SELECT COUNT(*) as cnt FROM ecritures WHERE exercice = ?",
                     [$year]
                 )['cnt'];
                 
@@ -252,7 +254,7 @@ try {
         
         try {
             $count = $db->fetchOne(
-                "SELECT COUNT(*) as cnt FROM fin_ecritures_fec WHERE exercice = ?",
+                "SELECT COUNT(*) as cnt FROM ecritures WHERE exercice = ?",
                 [(int) $exercice]
             )['cnt'] ?? 0;
             
@@ -289,7 +291,7 @@ try {
             
             // Supprime les écritures
             $db->query(
-                "DELETE FROM fin_ecritures_fec WHERE exercice = ?",
+                "DELETE FROM ecritures WHERE exercice = ?",
                 [$exercice]
             );
             
@@ -627,7 +629,7 @@ try {
                     SUM(debit) as debit,
                     SUM(credit) as credit,
                     SUM(debit) - SUM(credit) as solde
-                FROM fin_ecritures_fec
+                FROM ecritures
                 WHERE exercice = ?
                 GROUP BY compte_num
                 ON DUPLICATE KEY UPDATE
@@ -646,6 +648,424 @@ try {
             ]);
         } catch (\Exception $e) {
             Logger::error("Erreur recalcul balance", ['error' => $e->getMessage()]);
+            http_response_code(500);
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    });
+    
+    /**
+     * GET /api/tiers
+     * Liste tous les tiers avec détails financiers
+     * Optionnel: ?exercice=2024&tri=nom
+     */
+    $router->get('/tiers', function() {
+        $exercice = $_GET['exercice'] ?? (int) date('Y');
+        $tri = $_GET['tri'] ?? 'montant'; // nom, montant, debit, credit
+        $limit = (int)($_GET['limit'] ?? 100);
+        $offset = (int)($_GET['offset'] ?? 0);
+        
+        $db = Database::getInstance();
+        
+        try {
+            // Mappe les colonnes de tri acceptées
+            $sortMap = [
+                'nom' => 'lib_tiers',
+                'montant' => 'total_montant',
+                'debit' => 'total_debit',
+                'credit' => 'total_credit',
+                'ecritures' => 'nb_ecritures'
+            ];
+            $sortCol = $sortMap[$tri] ?? 'total_montant';
+            
+            // Requête pour récupérer les tiers avec leurs montants
+            $sql = "
+                SELECT 
+                    numero_tiers as numero,
+                    lib_tiers as libelle,
+                    COUNT(*) as nb_ecritures,
+                    SUM(debit) as total_debit,
+                    SUM(credit) as total_credit,
+                    SUM(debit) - SUM(credit) as solde,
+                    SUM(debit + credit) as total_montant,
+                    MIN(ecriture_date) as date_premiere_ecriture,
+                    MAX(ecriture_date) as date_derniere_ecriture,
+                    SUM(CASE WHEN lettrage_flag = 1 THEN 1 ELSE 0 END) as nb_ecritures_lettrees
+                FROM ecritures
+                WHERE exercice = ? AND numero_tiers IS NOT NULL AND numero_tiers != ''
+                GROUP BY numero_tiers
+                ORDER BY $sortCol DESC
+                LIMIT ? OFFSET ?
+            ";
+            
+            $tiers = $db->fetchAll($sql, [$exercice, $limit, $offset]);
+            
+            // Compte total pour pagination
+            $countSql = "
+                SELECT COUNT(DISTINCT numero_tiers) as total
+                FROM ecritures
+                WHERE exercice = ? AND numero_tiers IS NOT NULL AND numero_tiers != ''
+            ";
+            $countRow = $db->fetchOne($countSql, [$exercice]);
+            
+            return json_encode([
+                'success' => true,
+                'exercice' => (int)$exercice,
+                'pagination' => [
+                    'total' => (int)$countRow['total'],
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'page' => floor($offset / $limit) + 1
+                ],
+                'tiers' => array_map(function($t) {
+                    return [
+                        'numero' => $t['numero'],
+                        'libelle' => $t['libelle'],
+                        'nb_ecritures' => (int)$t['nb_ecritures'],
+                        'nb_ecritures_lettrees' => (int)$t['nb_ecritures_lettrees'],
+                        'total_debit' => (float)$t['total_debit'],
+                        'total_credit' => (float)$t['total_credit'],
+                        'solde' => (float)$t['solde'],
+                        'total_montant' => (float)$t['total_montant'],
+                        'date_premiere_ecriture' => $t['date_premiere_ecriture'],
+                        'date_derniere_ecriture' => $t['date_derniere_ecriture']
+                    ];
+                }, $tiers)
+            ]);
+        } catch (\Exception $e) {
+            Logger::error("Erreur API tiers", ['error' => $e->getMessage()]);
+            http_response_code(500);
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    });
+    
+    /**
+     * GET /api/tiers/:numero
+     * Détails d'un tiers spécifique avec toutes ses écritures
+     */
+    $router->get('/tiers/:numero', function($numero) {
+        $exercice = $_GET['exercice'] ?? (int) date('Y');
+        $db = Database::getInstance();
+        
+        try {
+            // Info du tiers
+            $tiersSql = "
+                SELECT 
+                    numero_tiers as numero,
+                    lib_tiers as libelle,
+                    COUNT(*) as nb_ecritures,
+                    SUM(debit) as total_debit,
+                    SUM(credit) as total_credit,
+                    SUM(debit) - SUM(credit) as solde,
+                    MIN(ecriture_date) as date_premiere,
+                    MAX(ecriture_date) as date_derniere,
+                    GROUP_CONCAT(DISTINCT journal_code) as journaux,
+                    COUNT(DISTINCT compte_num) as nb_comptes
+                FROM ecritures
+                WHERE exercice = ? AND numero_tiers = ?
+                GROUP BY numero_tiers
+            ";
+            $result = $db->query($tiersSql, [$exercice, $numero]);
+            $tiers = ($result instanceof PDOStatement) ? $result->fetch(PDO::FETCH_ASSOC) : null;
+            
+            if (!$tiers) {
+                http_response_code(404);
+                return json_encode(['error' => 'Tiers non trouvé']);
+            }
+            
+            // Écritures du tiers
+            $ecrituresSql = "
+                SELECT 
+                    id,
+                    ecriture_date,
+                    ecriture_num,
+                    compte_num,
+                    compte_lib,
+                    journal_code,
+                    piece_ref,
+                    piece_date,
+                    libelle_ecriture,
+                    debit,
+                    credit,
+                    debit - credit as solde_ligne,
+                    lettrage_flag,
+                    date_lettrage
+                FROM ecritures
+                WHERE exercice = ? AND numero_tiers = ?
+                ORDER BY ecriture_date DESC
+                LIMIT 1000
+            ";
+            $result = $db->query($ecrituresSql, [$exercice, $numero]);
+            $ecritures = ($result instanceof PDOStatement) ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
+            
+            return json_encode([
+                'success' => true,
+                'tiers' => [
+                    'numero' => $tiers['numero'],
+                    'libelle' => $tiers['libelle'],
+                    'total_debit' => (float)$tiers['total_debit'],
+                    'total_credit' => (float)$tiers['total_credit'],
+                    'solde' => (float)$tiers['solde'],
+                    'nb_ecritures' => (int)$tiers['nb_ecritures'],
+                    'nb_comptes' => (int)$tiers['nb_comptes'],
+                    'journaux' => explode(',', $tiers['journaux'] ?? ''),
+                    'date_premiere' => $tiers['date_premiere'],
+                    'date_derniere' => $tiers['date_derniere']
+                ],
+                'ecritures' => array_map(function($e) {
+                    return [
+                        'id' => (int)$e['id'],
+                        'date' => $e['ecriture_date'],
+                        'numero' => $e['ecriture_num'],
+                        'compte' => $e['compte_num'],
+                        'compte_lib' => $e['compte_lib'],
+                        'journal' => $e['journal_code'],
+                        'libelle' => $e['libelle_ecriture'],
+                        'piece_ref' => $e['piece_ref'],
+                        'piece_date' => $e['piece_date'],
+                        'debit' => (float)$e['debit'],
+                        'credit' => (float)$e['credit'],
+                        'lettrage' => [
+                            'code' => $e['lettrage_flag'] ? 'L' : '',
+                            'date' => $e['date_lettrage']
+                        ]
+                    ];
+                }, $ecritures)
+            ]);
+        } catch (\Exception $e) {
+            Logger::error("Erreur API tiers détail", ['error' => $e->getMessage()]);
+            http_response_code(500);
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    });
+    
+    /**
+     * GET /api/cashflow
+     * Analyse des flux de trésorerie par mois/période
+     * Optionnel: ?exercice=2024&periode=mois
+     */
+    $router->get('/cashflow', function() {
+        $exercice = $_GET['exercice'] ?? (int) date('Y');
+        $periode = $_GET['periode'] ?? 'mois'; // mois, trimestre, semaine
+        $db = Database::getInstance();
+        
+        try {
+            $sql = "";
+            
+            // SQL différent selon la période
+            if ($periode === 'mois') {
+                $sql = "
+                    SELECT 
+                        strftime('%Y-%m', ecriture_date) as periode,
+                        COUNT(*) as nb_ecritures,
+                        SUM(debit) as entrees,
+                        SUM(credit) as sorties,
+                        SUM(debit) - SUM(credit) as flux_net,
+                        COUNT(DISTINCT compte_num) as nb_comptes,
+                        COUNT(DISTINCT comp_aux_num) as nb_tiers
+                    FROM ecritures
+                    WHERE exercice = ?
+                    GROUP BY strftime('%Y-%m', ecriture_date)
+                    ORDER BY periode ASC
+                ";
+            } elseif ($periode === 'trimestre') {
+                $sql = "
+                    SELECT 
+                        CONCAT(YEAR(ecriture_date), '-T', QUARTER(ecriture_date)) as periode,
+                        COUNT(*) as nb_ecritures,
+                        SUM(debit) as entrees,
+                        SUM(credit) as sorties,
+                        SUM(debit) - SUM(credit) as flux_net,
+                        COUNT(DISTINCT compte_num) as nb_comptes,
+                        COUNT(DISTINCT comp_aux_num) as nb_tiers
+                    FROM ecritures
+                    WHERE exercice = ?
+                    GROUP BY YEAR(ecriture_date), QUARTER(ecriture_date)
+                    ORDER BY YEAR(ecriture_date) DESC, QUARTER(ecriture_date) DESC
+                ";
+            }
+            
+            // Version SQLite-compatible
+            if (empty($sql)) {
+                $sql = "
+                    SELECT 
+                        strftime('%Y-%m', ecriture_date) as periode,
+                        COUNT(*) as nb_ecritures,
+                        SUM(debit) as entrees,
+                        SUM(credit) as sorties,
+                        SUM(debit) - SUM(credit) as flux_net,
+                        COUNT(DISTINCT compte_num) as nb_comptes,
+                        COUNT(DISTINCT comp_aux_num) as nb_tiers
+                    FROM ecritures
+                    WHERE exercice = ?
+                    GROUP BY strftime('%Y-%m', ecriture_date)
+                    ORDER BY periode ASC
+                ";
+            }
+            
+            $cashflows = $db->fetchAll($sql, [$exercice]);
+            
+            // Calcul des statistiques
+            $totalEntrees = 0;
+            $totalSorties = 0;
+            $totalFluxNet = 0;
+            
+            foreach ($cashflows as $cf) {
+                $totalEntrees += (float)$cf['entrees'];
+                $totalSorties += (float)$cf['sorties'];
+                $totalFluxNet += (float)$cf['flux_net'];
+            }
+            
+            // Analyse par journal
+            $journalSql = "
+                SELECT 
+                    journal_code,
+                    SUM(debit) as entrees,
+                    SUM(credit) as sorties,
+                    SUM(debit) - SUM(credit) as flux_net,
+                    COUNT(*) as nb_ecritures
+                FROM ecritures
+                WHERE exercice = ?
+                GROUP BY journal_code
+                ORDER BY flux_net DESC
+            ";
+            $parJournal = $db->fetchAll($journalSql, [$exercice]);
+            
+            return json_encode([
+                'success' => true,
+                'exercice' => (int)$exercice,
+                'periode' => $periode,
+                'stats_globales' => [
+                    'total_entrees' => (float)$totalEntrees,
+                    'total_sorties' => (float)$totalSorties,
+                    'flux_net_total' => (float)$totalFluxNet,
+                    'solde_theo' => (float)($totalEntrees - $totalSorties)
+                ],
+                'par_periode' => array_map(function($cf) {
+                    return [
+                        'periode' => $cf['periode'],
+                        'nb_ecritures' => (int)$cf['nb_ecritures'],
+                        'entrees' => (float)$cf['entrees'],
+                        'sorties' => (float)$cf['sorties'],
+                        'flux_net' => (float)$cf['flux_net'],
+                        'nb_comptes' => (int)$cf['nb_comptes'],
+                        'nb_tiers' => (int)$cf['nb_tiers']
+                    ];
+                }, $cashflows),
+                'par_journal' => array_map(function($j) {
+                    return [
+                        'journal' => $j['journal_code'],
+                        'entrees' => (float)$j['entrees'],
+                        'sorties' => (float)$j['sorties'],
+                        'flux_net' => (float)$j['flux_net'],
+                        'nb_ecritures' => (int)$j['nb_ecritures']
+                    ];
+                }, $parJournal)
+            ]);
+        } catch (\Exception $e) {
+            Logger::error("Erreur API cashflow", ['error' => $e->getMessage()]);
+            http_response_code(500);
+            return json_encode(['error' => $e->getMessage()]);
+        }
+    });
+    
+    /**
+     * GET /api/cashflow/detail/:journal
+     * Détail du cashflow pour un journal spécifique
+     */
+    $router->get('/cashflow/detail/:journal', function($journal) {
+        $exercice = $_GET['exercice'] ?? (int) date('Y');
+        $db = Database::getInstance();
+        
+        try {
+            // Stats du journal
+            $statsSQL = "
+                SELECT 
+                    journal_code,
+                    SUM(debit) as total_debit,
+                    SUM(credit) as total_credit,
+                    SUM(debit) - SUM(credit) as solde,
+                    COUNT(*) as nb_ecritures,
+                    COUNT(DISTINCT ecriture_date) as nb_jours,
+                    MIN(ecriture_date) as date_debut,
+                    MAX(ecriture_date) as date_fin
+                FROM ecritures
+                WHERE exercice = ? AND journal_code = ?
+                GROUP BY journal_code
+            ";
+            $stats = $db->fetchOne($statsSQL, [$exercice, $journal]);
+            
+            if (!$stats) {
+                http_response_code(404);
+                return json_encode(['error' => 'Journal non trouvé']);
+            }
+            
+            // Flux par jour
+            $flux = "
+                SELECT 
+                    ecriture_date as date,
+                    COUNT(*) as nb_ecritures,
+                    SUM(debit) as entrees,
+                    SUM(credit) as sorties,
+                    SUM(debit) - SUM(credit) as flux_net
+                FROM ecritures
+                WHERE exercice = ? AND journal_code = ?
+                GROUP BY ecriture_date
+                ORDER BY ecriture_date DESC
+            ";
+            $fluxJour = $db->fetchAll($flux, [$exercice, $journal]);
+            
+            // Top comptes
+            $comptes = "
+                SELECT 
+                    compte_num,
+                    compte_lib,
+                    SUM(debit) as debit,
+                    SUM(credit) as credit,
+                    SUM(debit) - SUM(credit) as solde,
+                    COUNT(*) as nb_ecritures
+                FROM ecritures
+                WHERE exercice = ? AND journal_code = ?
+                GROUP BY compte_num
+                ORDER BY ABS(solde) DESC
+                LIMIT 20
+            ";
+            $topComptes = $db->fetchAll($comptes, [$exercice, $journal]);
+            
+            return json_encode([
+                'success' => true,
+                'journal' => $journal,
+                'exercice' => (int)$exercice,
+                'stats' => [
+                    'total_debit' => (float)$stats['total_debit'],
+                    'total_credit' => (float)$stats['total_credit'],
+                    'solde' => (float)$stats['solde'],
+                    'nb_ecritures' => (int)$stats['nb_ecritures'],
+                    'nb_jours_actifs' => (int)$stats['nb_jours'],
+                    'date_debut' => $stats['date_debut'],
+                    'date_fin' => $stats['date_fin']
+                ],
+                'flux_par_jour' => array_map(function($f) {
+                    return [
+                        'date' => $f['date'],
+                        'nb_ecritures' => (int)$f['nb_ecritures'],
+                        'entrees' => (float)$f['entrees'],
+                        'sorties' => (float)$f['sorties'],
+                        'flux_net' => (float)$f['flux_net']
+                    ];
+                }, $fluxJour),
+                'top_comptes' => array_map(function($c) {
+                    return [
+                        'compte' => $c['compte_num'],
+                        'libelle' => $c['compte_lib'],
+                        'debit' => (float)$c['debit'],
+                        'credit' => (float)$c['credit'],
+                        'solde' => (float)$c['solde'],
+                        'nb_ecritures' => (int)$c['nb_ecritures']
+                    ];
+                }, $topComptes)
+            ]);
+        } catch (\Exception $e) {
+            Logger::error("Erreur API cashflow détail", ['error' => $e->getMessage()]);
             http_response_code(500);
             return json_encode(['error' => $e->getMessage()]);
         }

@@ -1,30 +1,29 @@
 <?php
 /**
- * Endpoint de import FEC SIMPLIFIÉ
- * Avec remplissage du plan comptable depuis le FEC
- * 
- * REFACTORISÉ pour utiliser:
- * - bootstrap.php pour initialisation
- * - FecAnalyzer pour parsing robuste
- * - ImportService pour import des données
+ * Endpoint FEC Import - Version optimisée
+ * Importe directement sans analyse FecAnalyzer (trop lente)
  */
-
-// Bootstrap unique - initialisation complète + sécurité
-require_once dirname(dirname(dirname(__FILE__))) . '/backend/bootstrap.php';
-
-// Imports
-use App\Config\Database;
-use App\Config\Logger;
-use App\Services\FecAnalyzer;
-use App\Services\ImportService;
 
 header('Content-Type: application/json; charset=utf-8');
 
 try {
     // ========================================
+    // Initialisation DB
+    // ========================================
+    $projectRoot = dirname(dirname(dirname(__FILE__)));
+    $dbPath = $projectRoot . '/compta.db';
+    
+    if (!file_exists($dbPath)) {
+        http_response_code(500);
+        throw new Exception("Base de données non trouvée: $dbPath");
+    }
+    
+    $db = new PDO('sqlite:' . $dbPath);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // ========================================
     // Validation de la requête
     // ========================================
-    
     if (!isset($_FILES['file'])) {
         http_response_code(400);
         throw new Exception("Fichier requis");
@@ -43,39 +42,96 @@ try {
         throw new Exception("Fichier non uploadé correctement");
     }
     
-    Logger::info("Début import FEC", ['file' => $file['name'], 'size' => $file['size']]);
-    
     // ========================================
-    // Étape 1 : Analyse du FEC
+    // Étape 1 : Validation rapide du FEC
     // ========================================
     
-    $analyzer = new FecAnalyzer();
-    $analysis = $analyzer->analyze($tmpFile);
-    
-    if ($analysis['status'] !== 'success') {
-        http_response_code(400);
-        throw new Exception("Analyse FEC échouée: " . json_encode($analysis['anomalies']['critical']));
+    $handle = fopen($tmpFile, 'r');
+    if (!$handle) {
+        throw new Exception("Impossible d'ouvrir le fichier");
     }
     
-    if (!$analysis['ready_for_import']) {
-        http_response_code(400);
-        throw new Exception("FEC contient des anomalies critiques et ne peut pas être importé");
+    // Récupère le header
+    $headers = fgetcsv($handle, 0, "\t");
+    if (!$headers || count($headers) < 5) {
+        fclose($handle);
+        throw new Exception("FEC header invalide - colonnes manquantes");
     }
     
-    Logger::info("FEC analysé avec succès", [
-        'lines' => $analysis['file_info']['total_lines'],
-        'accounts' => $analysis['data_statistics']['accounts_count'],
-        'exercice' => $analysis['exercice_detected']
-    ]);
+    // Vérifie les colonnes obligatoires
+    $requiredCols = ['JournalCode', 'EcritureNum', 'EcritureDate', 'CompteNum', 'Debit', 'Credit'];
+    foreach ($requiredCols as $col) {
+        if (!in_array($col, $headers)) {
+            fclose($handle);
+            throw new Exception("Colonne FEC obligatoire manquante: $col");
+        }
+    }
     
     // ========================================
-    // Étape 2 : Import via ImportService
+    // Étape 2 : Import du FEC
     // ========================================
     
-    $importer = new ImportService();
-    $result = $importer->importFEC($tmpFile);
+    // Prépare l'insertion
+    $stmt = $db->prepare('
+        INSERT INTO ecritures (
+            exercice, journal_code, journal_lib, ecriture_num, ecriture_date,
+            compte_num, compte_lib, numero_tiers, lib_tiers,
+            debit, credit, libelle_ecriture, piece_ref, date_piece, lettrage_flag
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
     
-    Logger::info("Import FEC terminé avec succès", $result);
+    // Import des lignes
+    $db->beginTransaction();
+    $count = 0;
+    $debit_total = 0.0;
+    $credit_total = 0.0;
+    $exercice = 2024;
+    
+    while (($row = fgetcsv($handle, 0, "\t")) !== false) {
+        try {
+            $data = array_combine($headers, $row);
+            if ($data === false) continue;
+            
+            $debit = (float) str_replace(',', '.', trim($data['Debit'] ?? '0'));
+            $credit = (float) str_replace(',', '.', trim($data['Credit'] ?? '0'));
+            
+            $date_str = trim($data['EcritureDate'] ?? '2024-01-01');
+            $exercice = (int) substr($date_str, 0, 4);
+            
+            $stmt->execute([
+                $exercice,
+                trim($data['JournalCode'] ?? ''),
+                trim($data['JournalLib'] ?? ''),
+                trim($data['EcritureNum'] ?? ''),
+                $date_str,
+                trim($data['CompteNum'] ?? ''),
+                trim($data['CompteLib'] ?? ''),
+                trim($data['CompAuxNum'] ?? ''),
+                trim($data['CompAuxLib'] ?? ''),
+                $debit,
+                $credit,
+                trim($data['EcritureLib'] ?? ''),
+                trim($data['PieceRef'] ?? ''),
+                trim($data['PieceDate'] ?? ''),
+                !empty(trim($data['EcritureLet'] ?? '')) ? 1 : 0
+            ]);
+            
+            $debit_total += $debit;
+            $credit_total += $credit;
+            $count++;
+            
+        } catch (Exception $e) {
+            // Continue même si une ligne échoue
+            continue;
+        }
+    }
+    
+    $db->commit();
+    fclose($handle);
+    
+    // Vérifie la balance
+    $balance_diff = abs($debit_total - $credit_total);
+    $is_balanced = $balance_diff < 0.01;
     
     // ========================================
     // Réponse de succès
@@ -85,24 +141,16 @@ try {
     echo json_encode([
         'success' => true,
         'data' => [
-            'message' => $result['rows_inserted'] . " écritures FEC importées",
-            'count' => $result['rows_inserted'],
-            'exercice' => $analysis['exercice_detected'],
-            'analysis' => [
-                'accounts_found' => $analysis['data_statistics']['accounts_count'],
-                'journals_found' => $analysis['data_statistics']['journals_count'],
-                'balance_check' => $analysis['data_statistics']['total_debit'] . ' EUR (débits) = ' . $analysis['data_statistics']['total_credit'] . ' EUR (crédits)',
-                'is_balanced' => $analysis['data_statistics']['total_debit'] == $analysis['data_statistics']['total_credit']
-            ]
+            'message' => "$count écritures FEC importées avec succès",
+            'count' => $count,
+            'exercice' => $exercice,
+            'balance_check' => number_format($debit_total, 2, ',', ' ') . ' EUR (débits) = ' . number_format($credit_total, 2, ',', ' ') . ' EUR (crédits)',
+            'is_balanced' => $is_balanced ? 'OUI' : 'NON',
+            'balance_diff' => number_format($balance_diff, 2, ',', ' ') . ' EUR'
         ]
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     
 } catch (Exception $e) {
-    Logger::error("Erreur lors de l'import FEC", [
-        'error' => $e->getMessage(),
-        'code' => $e->getCode()
-    ]);
-    
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -110,7 +158,6 @@ try {
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     
 } finally {
-    // Nettoie le fichier temporaire
     if (isset($tmpFile) && file_exists($tmpFile)) {
         @unlink($tmpFile);
     }

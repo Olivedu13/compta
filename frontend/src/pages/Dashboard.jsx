@@ -29,7 +29,9 @@ import { LoadingOverlay, ErrorBoundary } from '../components/common';
 import {
   DashboardKPISection,
   DashboardSIGCascade,
-  DashboardComparisonView
+  DashboardComparisonView,
+  TiersAnalysisWidget,
+  CashflowAnalysisWidget
 } from '../components/dashboard';
 import AnalysisSection from '../components/AnalysisSection';
 import AdvancedAnalytics from '../components/AdvancedAnalytics';
@@ -184,6 +186,18 @@ export default function Dashboard() {
 
         {/* SIG Cascade */}
         <DashboardSIGCascade waterfallData={waterfallData} sig={sig} />
+
+        {/* Phase 3 APIs: Tiers Analysis */}
+        <Typography variant="h5" sx={{ mb: 3, mt: 4, fontWeight: 'bold' }}>
+          👥 Analyse des Tiers
+        </Typography>
+        <TiersAnalysisWidget exercice={exercice} />
+
+        {/* Phase 3 APIs: Cashflow Analysis */}
+        <Typography variant="h5" sx={{ mb: 3, mt: 4, fontWeight: 'bold' }}>
+          💰 Analyse du Cashflow
+        </Typography>
+        <CashflowAnalysisWidget exercice={exercice} />
 
         {/* Analyse Financière */}
         <Typography variant="h5" sx={{ mb: 3, mt: 4, fontWeight: 'bold' }}>

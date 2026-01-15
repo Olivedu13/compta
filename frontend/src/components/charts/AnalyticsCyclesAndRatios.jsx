@@ -134,14 +134,14 @@ const AnalyticsCyclesAndRatios = ({ cycles = {}, ratios = {}, couts = {}, tresor
               <Typography variant="h6" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
                 {(tresorerie.actif_circulant / tresorerie.passif_circulant)?.toFixed(2) || '0'} x
               </Typography>
-              <Typography variant="caption" color="textSecondary">Sain si > 1,5x</Typography>
+              <Typography variant="caption" color="textSecondary">Sain si {'>='} 1,5x</Typography>
             </Box>
             <Box sx={{ p: 2, backgroundColor: '#f3e5f5', borderRadius: 1 }}>
               <Typography variant="caption" color="textSecondary">Autonomie Financière</Typography>
               <Typography variant="h6" sx={{ color: '#9c27b0', fontWeight: 'bold' }}>
                 {((tresorerie.capitaux_propres / tresorerie.total_actif) * 100)?.toFixed(1) || '0'}%
               </Typography>
-              <Typography variant="caption" color="textSecondary">Sain si > 30%</Typography>
+              <Typography variant="caption" color="textSecondary">Sain si {'>='} 30%</Typography>
             </Box>
           </Box>
         </Paper>

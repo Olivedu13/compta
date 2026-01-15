@@ -155,6 +155,26 @@ export const apiService = {
   },
 
   // ========================================
+  // Phase 3: Tiers & Cashflow
+  // ========================================
+
+  getTiers(params = {}) {
+    return api.get('/tiers', { params });
+  },
+
+  getTierDetail(numero, params = {}) {
+    return api.get(`/tiers/${numero}`, { params });
+  },
+
+  getCashflow(params = {}) {
+    return api.get('/cashflow', { params });
+  },
+
+  getCashflowDetail(journal, params = {}) {
+    return api.get(`/cashflow/detail/${journal}`, { params });
+  },
+
+  // ========================================
   // Gestion des années
   // ========================================
 
