@@ -37,6 +37,7 @@ import {
   Scatter
 } from 'recharts';
 import { apiService } from '../services/api';
+import { KPIMetric } from './common';
 
 const COLORS = ['#4caf50', '#ff9800', '#f44336', '#2196f3', '#9c27b0', '#00bcd4'];
 
@@ -48,6 +49,7 @@ const formatCurrency = (value) => {
     maximumFractionDigits: 0
   }).format(value);
 };
+
 
 const formatShortCurrency = (value) => {
   const abs = Math.abs(value);
