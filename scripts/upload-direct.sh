@@ -29,6 +29,7 @@ cd compta
 -mkdir public_html/api/v1/accounting
 -mkdir public_html/api/v1/analytics
 -mkdir public_html/api/v1/balance
+-mkdir public_html/api/v1/sig
 -mkdir public_html/api/v1/years
 
 # Public HTML - fichiers utiles
@@ -39,6 +40,7 @@ put /workspaces/compta/public_html/api/index.php public_html/api/index.php
 put /workspaces/compta/simple-import-STANDALONE.php public_html/api/simple-import.php
 put /workspaces/compta/public_html/api/v1/index.php public_html/api/v1/index.php
 put /workspaces/compta/public_html/api/v1/sig-simple.php public_html/api/v1/sig-simple.php
+put /workspaces/compta/public_html/api/v1/sig/simple.php public_html/api/v1/sig/simple.php
 put /workspaces/compta/public_html/api/v1/accounting/sig.php public_html/api/v1/accounting/sig.php
 put /workspaces/compta/compta.db compta.db
 put /workspaces/compta/public_html/assets/index.js public_html/assets/index.js
