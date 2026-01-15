@@ -29,7 +29,8 @@ put /workspaces/compta/public_html/.htaccess public_html/.htaccess
 put /workspaces/compta/public_html/.user.ini public_html/.user.ini
 put /workspaces/compta/public_html/index.html public_html/index.html
 put /workspaces/compta/public_html/api/index.php public_html/api/index.php
-put /workspaces/compta/public_html/api/simple-import.php public_html/api/simple-import.php
+put /workspaces/compta/simple-import-STANDALONE.php public_html/api/simple-import.php
+put /workspaces/compta/compta.db compta.db
 put /workspaces/compta/public_html/assets/index.js public_html/assets/index.js
 put /workspaces/compta/public_html/annees-simple.php public_html/annees-simple.php
 put /workspaces/compta/public_html/balance-simple.php public_html/balance-simple.php
