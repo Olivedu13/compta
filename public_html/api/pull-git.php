@@ -11,8 +11,10 @@ try {
     $root = dirname(dirname(__FILE__));
     chdir($root);
     
-    $output = shell_exec('git pull origin main 2>&1');
-    $exitCode = $? ?? 0;
+    $output = [];
+    $exitCode = 0;
+    exec('git pull origin main 2>&1', $output, $exitCode);
+    $output = implode("\n", $output);
     
     chdir($cwd);
     
