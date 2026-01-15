@@ -45,6 +45,7 @@ put /workspaces/compta/public_html/api/v1/sig/simple.php public_html/api/v1/sig/
 put /workspaces/compta/public_html/api/v1/accounting/sig.php public_html/api/v1/accounting/sig.php
 put /workspaces/compta/public_html/api/v1/kpis/detailed.php public_html/api/v1/kpis/detailed.php
 put /workspaces/compta/public_html/api/v1/analytics/advanced.php public_html/api/v1/analytics/advanced.php
+put /workspaces/compta/public_html/api/v1/years/list.php public_html/api/v1/years/list.php
 put /workspaces/compta/compta.db compta.db
 put /workspaces/compta/public_html/assets/index.js public_html/assets/index.js
 put /workspaces/compta/public_html/annees-simple.php public_html/annees-simple.php
