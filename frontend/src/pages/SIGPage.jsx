@@ -32,12 +32,40 @@ import {
 import apiService from '../services/api';
 
 export default function SIGPage() {
-  const [exercice, setExercice] = useState(new Date().getFullYear());
+  const [exercice, setExercice] = useState(null); // null au démarrage
+  const [annees, setAnnees] = useState([]);
   const [sig, setSig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Charger les années disponibles en premier
   useEffect(() => {
+    const loadAnnees = async () => {
+      try {
+        const response = await apiService.getAnnees();
+        const years = Array.isArray(response.data.data) ? response.data.data : [];
+        
+        if (years.length > 0) {
+          setAnnees(years);
+          setExercice(years[0]); // Défini à la première année
+        } else {
+          setAnnees([]);
+          setExercice(2024);
+          setError('Aucune année disponible');
+        }
+      } catch (err) {
+        console.error('Erreur chargement années:', err);
+        setAnnees([2024]);
+        setExercice(2024);
+      }
+    };
+    loadAnnees();
+  }, []);
+
+  // Charger les données UNIQUEMENT après que exercice soit défini
+  useEffect(() => {
+    if (exercice === null) return;
+
     const fetchSIG = async () => {
       try {
         setLoading(true);
@@ -110,23 +138,24 @@ export default function SIGPage() {
               Cascade des SIG
             </Typography>
             <Grid container spacing={2}>
-              {Object.entries(sig).map(([key, value]) => {
-                const isPositive = value.formatted.est_positif;
+              {sig?.cascade && Object.entries(sig.cascade).map(([key, value]) => {
+                const { est_positif = false, couleur = '#999', valeur_brute = 0, valeur_affichee = '0,00', description = '' } = value.formatted || {};
+                
                 return (
                   <Grid item xs={12} sm={6} md={4} key={key}>
                     <Card sx={{
-                      bgcolor: isPositive ? '#e8f5e9' : '#ffebee',
-                      borderLeft: `4px solid ${value.formatted.couleur}`
+                      bgcolor: est_positif ? '#e8f5e9' : '#ffebee',
+                      borderLeft: `4px solid ${couleur}`
                     }}>
                       <CardContent>
                         <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 'bold' }}>
                           {key.replace(/_/g, ' ').toUpperCase()}
                         </Typography>
-                        <Typography variant="h6" sx={{ my: 1, color: value.formatted.couleur }}>
-                          {value.formatted.symbole}{value.formatted.valeur_affichee}
+                        <Typography variant="h6" sx={{ my: 1, color: couleur }}>
+                          {est_positif ? '+' : '−'}{valeur_affichee}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {value.description}
+                          {description}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -142,10 +171,11 @@ export default function SIGPage() {
               Analyse
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={Object.values(sig).map((item, idx) => ({
-                name: `SIG ${idx + 1}`,
-                valeur: item.formatted.valeur_brute
-              }))}>
+              <ComposedChart data={sig?.cascade && Object.values(sig.cascade)
+                .map((item, idx) => ({
+                  name: Object.keys(sig.cascade)[idx] || `SIG ${idx + 1}`,
+                  valeur: item.formatted?.valeur_brute || 0
+                }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />

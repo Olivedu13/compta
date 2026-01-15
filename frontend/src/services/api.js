@@ -3,6 +3,7 @@ import axios from 'axios';
 /**
  * Service d'appel API
  * Point de communication avec le backend PHP
+ * Support JWT Token Authentication
  */
 
 const API_BASE_URL = '/api';
@@ -15,10 +16,28 @@ const api = axios.create({
   timeout: 300000 // 5 minutes pour les imports lourds
 });
 
+// Intercepteur pour ajouter le token JWT
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
 // Intercepteur pour gestion des erreurs
 api.interceptors.response.use(
   response => response,
   error => {
+    // Si 401 Unauthorized, token expiré - rediriger vers login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
     console.error('API Error:', error);
     return Promise.reject(error);
   }
@@ -38,9 +57,7 @@ export const apiService = {
   // ========================================
 
   getBalance(exercice, page = 1, limit = 100) {
-    return api.get(`/balance/${exercice}`, {
-      params: { page, limit }
-    });
+    return axios.get(`/balance-simple.php?exercice=${exercice}&page=${page}&limit=${limit}`);
   },
 
   getEcritures(exercice, { page = 1, limit = 50, compte = null, journal = null, dateDebut = null, dateFin = null } = {}) {
@@ -61,15 +78,27 @@ export const apiService = {
   // ========================================
 
   getSIG(exercice) {
-    return api.get(`/sig/${exercice}`);
+    return axios.get(`/sig-simple.php?exercice=${exercice}`);
   },
 
   getSIGDetail(exercice) {
-    return api.get(`/sig/${exercice}/detail`);
+    return axios.get(`/sig-simple.php?exercice=${exercice}`);
   },
 
   getKPIs(exercice) {
-    return api.get(`/kpis/${exercice}`);
+    return axios.get(`/kpis-simple.php?exercice=${exercice}`);
+  },
+
+  getKPIsDetailed(exercice) {
+    return axios.get(`/kpis-detailed.php?exercice=${exercice}`);
+  },
+
+  getAnalyse(exercice) {
+    return axios.get(`/analyse-simple.php?exercice=${exercice}`);
+  },
+
+  getAnalyticsAdvanced(exercice) {
+    return axios.get(`/analytics-advanced.php?exercice=${exercice}`);
   },
 
   // ========================================
@@ -92,7 +121,8 @@ export const apiService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    return api.post('/import/fec', formData, {
+    // Utilise simple-import.php (sans /api/ car baseURL=='/api')
+    return api.post('/simple-import.php', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -129,7 +159,7 @@ export const apiService = {
   // ========================================
 
   getAnnees() {
-    return api.get('/annees');
+    return axios.get('/annees-simple.php');
   },
 
   getAnneeExists(annee) {

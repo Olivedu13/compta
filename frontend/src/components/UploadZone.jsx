@@ -81,7 +81,8 @@ export default function UploadZone({ onUploadSuccess }) {
     const currentYear = new Date().getFullYear();
     try {
       const response = await apiService.getAnneeExists(currentYear);
-      if (response.data.exists) {
+      // Gère les réponses possibles
+      if (response?.data?.exists === true) {
         // L'année existe, affiche le dialog de confirmation
         setOverrideOpen(true);
       } else {
@@ -121,23 +122,37 @@ export default function UploadZone({ onUploadSuccess }) {
 
       setUploadResult({
         success: true,
-        count: response.data.data.count || 0,
-        message: response.data.data.message || 'Import réussi',
+        count: response?.data?.data?.count || response?.data?.count || 0,
+        message: response?.data?.data?.message || response?.data?.message || 'Import réussi',
         timestamp: new Date().toLocaleString('fr-FR'),
         fileName: file.name
       });
 
       // Notifie le parent pour mise à jour
       if (onUploadSuccess) {
-        onUploadSuccess(response.data.data);
+        onUploadSuccess(response?.data?.data || response?.data || {});
       }
 
       // Recalcule la balance
       const exercice = new Date().getFullYear();
-      await apiService.recalculBalance(exercice);
+      try {
+        await apiService.recalculBalance(exercice);
+      } catch (err) {
+        console.warn('Erreur recalcul balance:', err);
+      }
 
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Erreur lors de l\'import';
+      console.error('Erreur import détail:', err);
+      // Extrait le message d'erreur depuis plusieurs sources possibles
+      let errorMsg = 'Erreur lors de l\'import';
+      if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err.response?.status === 500) {
+        errorMsg = 'Erreur serveur 500 - Vérifiez les logs';
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      
       setError('❌ ' + errorMsg);
       setUploadResult({
         success: false,

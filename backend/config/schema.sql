@@ -220,6 +220,12 @@ INSERT IGNORE INTO sys_journaux VALUES
 ('BQ', 'Journal de Banque', 'BQ', 'EUR', TRUE),
 ('OD', 'Journal des Opérations Diverses', 'OD', 'EUR', TRUE);
 
+-- Utilisateurs test
+INSERT IGNORE INTO sys_utilisateurs (email, nom, prenom, password_hash, role, is_actif) VALUES
+('admin@atelier-thierry.fr', 'Admin', 'System', '$2y$10$lPWNHyZXZblFSZ5gS.GvuODQ0mULO4cE.xOJPLVTj8Yfz3qweFBB2', 'admin', TRUE),
+('comptable@atelier-thierry.fr', 'Comptable', 'Test', '$2y$10$lPWNHyZXZblFSZ5gS.GvuODQ0mULO4cE.xOJPLVTj8Yfz3qweFBB2', 'user', TRUE),
+('viewer@atelier-thierry.fr', 'Viewer', 'Test', '$2y$10$lPWNHyZXZblFSZ5gS.GvuODQ0mULO4cE.xOJPLVTj8Yfz3qweFBB2', 'viewer', TRUE);
+
 -- Configuration
 INSERT IGNORE INTO sys_config VALUES
 ('societe_nom', 'Atelier Thierry Christiane', 'string', 'Nom de la bijouterie', NOW()),

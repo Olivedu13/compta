@@ -19,14 +19,42 @@ import { DataGrid } from '@mui/x-data-grid';
 import apiService from '../services/api';
 
 export default function BalancePage() {
-  const [exercice, setExercice] = useState(new Date().getFullYear());
+  const [exercice, setExercice] = useState(null); // null au démarrage
+  const [annees, setAnnees] = useState([]);
   const [data, setData] = useState([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 50 });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Charger les années disponibles en premier
   useEffect(() => {
+    const loadAnnees = async () => {
+      try {
+        const response = await apiService.getAnnees();
+        const years = Array.isArray(response.data.data) ? response.data.data : [];
+        
+        if (years.length > 0) {
+          setAnnees(years);
+          setExercice(years[0]); // Défini à la première année
+        } else {
+          setAnnees([]);
+          setExercice(2024);
+          setError('Aucune année disponible');
+        }
+      } catch (err) {
+        console.error('Erreur chargement années:', err);
+        setAnnees([2024]);
+        setExercice(2024);
+      }
+    };
+    loadAnnees();
+  }, []);
+
+  // Charger les données UNIQUEMENT après que exercice soit défini
+  useEffect(() => {
+    if (exercice === null) return;
+
     const fetchBalance = async () => {
       try {
         setLoading(true);

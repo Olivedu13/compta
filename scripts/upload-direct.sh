@@ -29,8 +29,16 @@ put /workspaces/compta/public_html/.htaccess public_html/.htaccess
 put /workspaces/compta/public_html/.user.ini public_html/.user.ini
 put /workspaces/compta/public_html/index.html public_html/index.html
 put /workspaces/compta/public_html/api/index.php public_html/api/index.php
+put /workspaces/compta/public_html/api/simple-import.php public_html/api/simple-import.php
 put /workspaces/compta/public_html/assets/index.js public_html/assets/index.js
-put /workspaces/compta/public_html/cleanup.php public_html/cleanup.php
+put /workspaces/compta/public_html/annees-simple.php public_html/annees-simple.php
+put /workspaces/compta/public_html/balance-simple.php public_html/balance-simple.php
+put /workspaces/compta/public_html/kpis-simple.php public_html/kpis-simple.php
+put /workspaces/compta/public_html/kpis-detailed.php public_html/kpis-detailed.php
+put /workspaces/compta/public_html/sig-simple.php public_html/sig-simple.php
+put /workspaces/compta/public_html/comptes-simple.php public_html/comptes-simple.php
+put /workspaces/compta/public_html/analyse-simple.php public_html/analyse-simple.php
+put /workspaces/compta/public_html/analytics-advanced.php public_html/analytics-advanced.php
 
 # Backend config
 put /workspaces/compta/backend/config/Database.php backend/config/Database.php
@@ -43,6 +51,26 @@ put /workspaces/compta/backend/config/Logger.php backend/config/Logger.php
 # Backend services
 put /workspaces/compta/backend/services/ImportService.php backend/services/ImportService.php
 put /workspaces/compta/backend/services/SigCalculator.php backend/services/SigCalculator.php
+
+# Supprimer les fichiers de debug/test du serveur
+rm public_html/cleanup.php
+rm public_html/data-status.php
+rm public_html/debug-import-fec.php
+rm public_html/debug-reset.php
+rm public_html/api-simple.php
+rm public_html/comptes-list.php
+rm public_html/test-import.php
+rm public_html/test-sig-format.php
+rm public_html/test-simple.php
+rm public_html/api/debug-api.php
+rm public_html/api/debug-data.php
+rm public_html/api/debug-fec.php
+rm public_html/api/debug-import.php
+rm public_html/api/debug-parse-fec.php
+rm public_html/api/tail-errors.php
+rm public_html/api/test-fec.php
+rm public_html/api/balance-simple.php
+rm public_html/api/kpis-simple.php
 
 quit
 EOF

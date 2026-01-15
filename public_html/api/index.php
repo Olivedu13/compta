@@ -8,57 +8,20 @@
  */
 
 // ========================================
-// Configuration d'initialisation
+// Bootstrap Unique - Initialisation Complète
 // ========================================
+
+require_once dirname(dirname(dirname(__FILE__))) . '/backend/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('X-Content-Type-Options: nosniff');
-
-// Chemins pour le chargement des classes
-// Sur Ionos, le backend est en dehors du web root
-define('APP_ROOT', dirname(dirname(dirname(__FILE__))));  // /compta
-define('BACKEND_ROOT', APP_ROOT . '/backend');
-
-// Log des chemins pour debug
-error_log("API init - __DIR__: " . __DIR__);
-error_log("API init - APP_ROOT: " . APP_ROOT);
-error_log("API init - BACKEND_ROOT: " . BACKEND_ROOT);
-error_log("API init - Database file: " . BACKEND_ROOT . '/config/Database.php');
-error_log("API init - Database exists: " . (file_exists(BACKEND_ROOT . '/config/Database.php') ? 'YES' : 'NO'));
-
-// Autoloader simple (sans Composer dans ce contexte)
-spl_autoload_register(function($class) {
-    // Convertit App\Config\Logger en config/Logger.php
-    $class = str_replace('App\\', '', $class);
-    // Convertit les backslashes en slashes
-    $path = str_replace('\\', '/', $class);
-    // Convertit la première partie (Config, Services) en minuscules
-    $parts = explode('/', $path);
-    if (count($parts) > 0) {
-        $parts[0] = strtolower($parts[0]);
-    }
-    $path = implode('/', $parts);
-    
-    $filePath = BACKEND_ROOT . '/' . $path . '.php';
-    
-    if (file_exists($filePath)) {
-        require_once $filePath;
-    } else {
-        error_log("Autoloader - File NOT found: " . $filePath . " (Original class: " . $class . ")");
-    }
-});
 
 // ========================================
-// Imports
+// Imports des Classes Métier
 // ========================================
 
-use App\Config\Database;
 use App\Config\Router;
-use App\Config\Logger;
 use App\Services\ImportService;
 use App\Services\SigCalculator;
-
-Logger::init();
 
 try {
     // ========================================
@@ -460,6 +423,60 @@ try {
     // ========================================
     // ROUTES POST - Actions
     // ========================================
+    
+    /**
+     * POST /api/analyze/fec
+     * Analyse un fichier FEC AVANT import
+     * Détecte format, anomalies, équilibre comptable
+     * Retourne: format, headers, statistiques, anomalies, recommandations
+     */
+    $router->post('/analyze/fec', function() {
+        if (!isset($_FILES['file'])) {
+            http_response_code(400);
+            return json_encode(['error' => 'Fichier requis']);
+        }
+        
+        $file = $_FILES['file'];
+        $tempPath = $file['tmp_name'];
+        
+        if (!file_exists($tempPath)) {
+            http_response_code(400);
+            return json_encode(['error' => 'Erreur upload fichier']);
+        }
+        
+        try {
+            Logger::info("FEC Analyse", ['file' => $file['name'], 'size' => filesize($tempPath)]);
+            
+            $importService = new ImportService();
+            $analysis = $importService->analyzeFEC($tempPath);
+            
+            Logger::info("Analyse FEC réussie", [
+                'ready_for_import' => $analysis['ready_for_import'],
+                'anomalies_critical' => count($analysis['anomalies']['critical']),
+                'anomalies_warnings' => count($analysis['anomalies']['warnings']),
+            ]);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $analysis
+            ]);
+        } catch (\Exception $e) {
+            Logger::error("Erreur analyse FEC", ['error' => $e->getMessage(), 'file' => $file['name']]);
+            http_response_code(500);
+            return json_encode([
+                'error' => $e->getMessage(),
+                'debug' => [
+                    'file' => $file['name'],
+                    'size' => filesize($tempPath),
+                    'exists' => file_exists($tempPath)
+                ]
+            ]);
+        } finally {
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+        }
+    });
     
     /**
      * POST /api/import/fec

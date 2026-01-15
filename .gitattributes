@@ -1,0 +1,14 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# Documents
+*.md text
+*.txt text
+*.json text
+*.php text
+
+# Binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

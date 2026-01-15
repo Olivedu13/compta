@@ -1,0 +1,55 @@
+JournalCode	JournalLib	EcritureNum	EcritureDate	CompteNum	CompteLib	CompAuxNum	CompAuxLib	PieceRef	PieceDate	EcritureLib	Debit	Credit	EcritureLet	DateLet	ValidDate	MontantDevise	IdDevise
+VE	Ventes	1	2024-01-05	70	Ventes de marchandises	40100	Client MARTIN Jean	FAC001	2024-01-05	Vente bijou or 18K bague		5500.00			2024-01-05	5500.00	EUR
+VE	Ventes	1	2024-01-05	41100	Clients - Martin Jean	40100	Client MARTIN Jean	FAC001	2024-01-05	Vente bijou or 18K bague	5500.00				2024-01-05	5500.00	EUR
+VE	Ventes	2	2024-01-08	70	Ventes de marchandises	40200	Client DUPONT Sylvie	FAC002	2024-01-08	Vente collier argent gravé		3200.00			2024-01-08	3200.00	EUR
+VE	Ventes	2	2024-01-08	41100	Clients - DUPONT Sylvie	40200	Client DUPONT Sylvie	FAC002	2024-01-08	Vente collier argent gravé	3200.00				2024-01-08	3200.00	EUR
+AC	Achats	100	2024-01-10	601	Achats de matières premières	40100	FOURNISSEUR SAFORO	CMD001	2024-01-10	Achat or lingot 10g		4500.00			2024-01-10	4500.00	EUR
+AC	Achats	100	2024-01-10	40100	Fournisseurs - SAFORO	40100	FOURNISSEUR SAFORO	CMD001	2024-01-10	Achat or lingot 10g	4500.00				2024-01-10	4500.00	EUR
+AC	Achats	101	2024-01-15	602	Achats de fournitures	40200	FOURNISSEUR LEGRAND	CMD002	2024-01-15	Fournitures atelier (outils, lime)		850.00			2024-01-15	850.00	EUR
+AC	Achats	101	2024-01-15	40100	Fournisseurs - LEGRAND	40200	FOURNISSEUR LEGRAND	CMD002	2024-01-15	Fournitures atelier (outils, lime)	850.00				2024-01-15	850.00	EUR
+BQ	Banque	500	2024-01-20	51200	Compte bancaire pro	51200	Compte bancaire pro	DEP001	2024-01-20	Dépôt chèques clients	8700.00				2024-01-20	8700.00	EUR
+BQ	Banque	500	2024-01-20	41100	Clients - Divers	51200	Compte bancaire pro	DEP001	2024-01-20	Dépôt chèques clients		8700.00			2024-01-20	8700.00	EUR
+BQ	Banque	501	2024-01-21	40100	Fournisseurs - Divers	51200	Compte bancaire pro	CHQ001	2024-01-21	Paiement fournisseur SAFORO	5350.00				2024-01-21	5350.00	EUR
+BQ	Banque	501	2024-01-21	51200	Compte bancaire pro	51200	Compte bancaire pro	CHQ001	2024-01-21	Paiement fournisseur SAFORO		5350.00			2024-01-21	5350.00	EUR
+VE	Ventes	3	2024-02-01	70	Ventes de marchandises	40300	Client THOMAS Marc	FAC003	2024-02-01	Vente boucles d'oreilles or blanc		7850.00			2024-02-01	7850.00	EUR
+VE	Ventes	3	2024-02-01	41100	Clients - THOMAS Marc	40300	Client THOMAS	FAC003	2024-02-01	Vente boucles d'oreilles or blanc	7850.00				2024-02-01	7850.00	EUR
+AC	Achats	102	2024-02-05	601	Achats de matières premières	40100	FOURNISSEUR SAFORO	CMD003	2024-02-05	Achat argent fin 50g		2800.00			2024-02-05	2800.00	EUR
+AC	Achats	102	2024-02-05	40100	Fournisseurs - SAFORO	40100	FOURNISSEUR SAFORO	CMD003	2024-02-05	Achat argent fin 50g	2800.00				2024-02-05	2800.00	EUR
+JO	Journaux	600	2024-02-10	641	Salaires et traitements	64100	Apprenti bijoutier	PSY001	2024-02-10	Salaire février apprenti (1 mois)		2500.00			2024-02-10	2500.00	EUR
+JO	Journaux	600	2024-02-10	42100	Dettes sociales	64100	Apprenti bijoutier	PSY001	2024-02-10	Salaire février apprenti (1 mois)	2500.00				2024-02-10	2500.00	EUR
+VE	Ventes	4	2024-02-15	70	Ventes de marchandises	40400	Client BERNARD Sophie	FAC004	2024-02-15	Vente chaîne or 14K		4200.00			2024-02-15	4200.00	EUR
+VE	Ventes	4	2024-02-15	41100	Clients - BERNARD Sophie	40400	Client BERNARD Sophie	FAC004	2024-02-15	Vente chaîne or 14K	4200.00				2024-02-15	4200.00	EUR
+BQ	Banque	502	2024-02-20	51200	Compte bancaire pro	51200	Compte bancaire pro	DEP002	2024-02-20	Dépôt chèques février	12050.00				2024-02-20	12050.00	EUR
+BQ	Banque	502	2024-02-20	41100	Clients - Divers	51200	Compte bancaire pro	DEP002	2024-02-20	Dépôt chèques février		12050.00			2024-02-20	12050.00	EUR
+VE	Ventes	5	2024-03-01	70	Ventes de marchandises	40500	Client LEFEVRE Antoine	FAC005	2024-03-01	Vente anneau argent massif		1850.00			2024-03-01	1850.00	EUR
+VE	Ventes	5	2024-03-01	41100	Clients - LEFEVRE Antoine	40500	Client LEFEVRE Antoine	FAC005	2024-03-01	Vente anneau argent massif	1850.00				2024-03-01	1850.00	EUR
+AC	Achats	103	2024-03-05	602	Achats de fournitures	40200	FOURNISSEUR LEGRAND	CMD004	2024-03-05	Chaînes de fourniture travail		1200.00			2024-03-05	1200.00	EUR
+AC	Achats	103	2024-03-05	40100	Fournisseurs - LEGRAND	40200	FOURNISSEUR LEGRAND	CMD004	2024-03-05	Chaînes de fourniture travail	1200.00				2024-03-05	1200.00	EUR
+JO	Journaux	601	2024-03-10	641	Salaires et traitements	64100	Apprenti bijoutier	PSY002	2024-03-10	Salaire mars apprenti (1 mois)		2500.00			2024-03-10	2500.00	EUR
+JO	Journaux	601	2024-03-10	42100	Dettes sociales	64100	Apprenti bijoutier	PSY002	2024-03-10	Salaire mars apprenti (1 mois)	2500.00				2024-03-10	2500.00	EUR
+VE	Ventes	6	2024-03-15	74	Autres produits exceptionnels	99999	Or de récupération valorisé	REV001	2024-03-15	Vente or de récupération fonte	1500.00				2024-03-15	1500.00	EUR
+VE	Ventes	6	2024-03-15	51200	Compte bancaire pro	99999	Or de récupération valorisé	REV001	2024-03-15	Vente or de récupération fonte		1500.00			2024-03-15	1500.00	EUR
+BQ	Banque	503	2024-03-20	51200	Compte bancaire pro	51200	Compte bancaire pro	DEP003	2024-03-20	Dépôt chèques mars	6050.00				2024-03-20	6050.00	EUR
+BQ	Banque	503	2024-03-20	41100	Clients - Divers	51200	Compte bancaire pro	DEP003	2024-03-20	Dépôt chèques mars		6050.00			2024-03-20	6050.00	EUR
+JO	Journaux	602	2024-03-31	681	Amortissements et provisions	68100	Amortissement tour bijouterie	AMT001	2024-03-31	Amortissement équipement tour (5 ans)		500.00			2024-03-31	500.00	EUR
+JO	Journaux	602	2024-03-31	215	Installations techniques	68100	Amortissement équipement	AMT001	2024-03-31	Amortissement équipement tour (5 ans)	500.00				2024-03-31	500.00	EUR
+VE	Ventes	7	2024-04-01	70	Ventes de marchandises	40600	Client RICHARD Isabelle	FAC006	2024-04-01	Vente broche or 750/1000		2300.00			2024-04-01	2300.00	EUR
+VE	Ventes	7	2024-04-01	41100	Clients - RICHARD Isabelle	40600	Client RICHARD Isabelle	FAC006	2024-04-01	Vente broche or 750/1000	2300.00				2024-04-01	2300.00	EUR
+AC	Achats	104	2024-04-05	601	Achats de matières premières	40100	FOURNISSEUR SAFORO	CMD005	2024-04-05	Achat pierres précieuses (diamants)		3500.00			2024-04-05	3500.00	EUR
+AC	Achats	104	2024-04-05	40100	Fournisseurs - SAFORO	40100	FOURNISSEUR SAFORO	CMD005	2024-04-05	Achat pierres précieuses	3500.00				2024-04-05	3500.00	EUR
+JO	Journaux	603	2024-04-10	641	Salaires et traitements	64100	Apprenti bijoutier	PSY003	2024-04-10	Salaire avril apprenti (1 mois)		2500.00			2024-04-10	2500.00	EUR
+JO	Journaux	603	2024-04-10	42100	Dettes sociales	64100	Apprenti bijoutier	PSY003	2024-04-10	Salaire avril apprenti (1 mois)	2500.00				2024-04-10	2500.00	EUR
+BQ	Banque	504	2024-04-20	51200	Compte bancaire pro	51200	Compte bancaire pro	DEP004	2024-04-20	Dépôt chèques avril	4300.00				2024-04-20	4300.00	EUR
+BQ	Banque	504	2024-04-20	41100	Clients - Divers	51200	Compte bancaire pro	DEP004	2024-04-20	Dépôt chèques avril		4300.00			2024-04-20	4300.00	EUR
+JO	Journaux	604	2024-04-30	63	Impôts et taxes		CVAE bijouterie		INT001	2024-04-30	CVAE (Cotisation Valeur Ajoutée)		600.00			2024-04-30	600.00	EUR
+JO	Journaux	604	2024-04-30	44300	Impôts et taxes sur résultats	99999	CVAE	INT001	2024-04-30	CVAE (Cotisation Valeur Ajoutée)	600.00				2024-04-30	600.00	EUR
+VE	Ventes	8	2024-05-01	70	Ventes de marchandises	40700	Client MOREAU Caroline	FAC007	2024-05-01	Vente pendentif argent	4750.00				2024-05-01	4750.00	EUR
+VE	Ventes	8	2024-05-01	41100	Clients - MOREAU Caroline	40700	Client MOREAU Caroline	FAC007	2024-05-01	Vente pendentif argent		4750.00			2024-05-01	4750.00	EUR
+AC	Achats	105	2024-05-05	602	Achats de fournitures	40200	FOURNISSEUR LEGRAND	CMD006	2024-05-05	Assurance marchandise pour atelier		1800.00			2024-05-05	1800.00	EUR
+AC	Achats	105	2024-05-05	40100	Fournisseurs - LEGRAND	40200	FOURNISSEUR LEGRAND	CMD006	2024-05-05	Assurance marchandise pour atelier	1800.00				2024-05-05	1800.00	EUR
+JO	Journaux	605	2024-05-10	641	Salaires et traitements	64100	Apprenti bijoutier	PSY004	2024-05-10	Salaire mai apprenti (1 mois)		2500.00			2024-05-10	2500.00	EUR
+JO	Journaux	605	2024-05-10	42100	Dettes sociales	64100	Apprenti bijoutier	PSY004	2024-05-10	Salaire mai apprenti (1 mois)	2500.00				2024-05-10	2500.00	EUR
+BQ	Banque	505	2024-05-20	51200	Compte bancaire pro	51200	Compte bancaire pro	DEP005	2024-05-20	Dépôt chèques mai	9050.00				2024-05-20	9050.00	EUR
+BQ	Banque	505	2024-05-20	41100	Clients - Divers	51200	Compte bancaire pro	DEP005	2024-05-20	Dépôt chèques mai		9050.00			2024-05-20	9050.00	EUR
+VE	Ventes	9	2024-06-01	70	Ventes de marchandises	40800	Client BERNARD Olivier	FAC008	2024-06-01	Vente montre bracelet argent	5600.00				2024-06-01	5600.00	EUR
+VE	Ventes	9	2024-06-01	41100	Clients - BERNARD Olivier	40800	Client BERNARD Olivier	FAC008	2024-06-01	Vente montre bracelet argent		5600.00			2024-06-01	5600.00	EUR

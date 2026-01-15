@@ -13,10 +13,23 @@ class ImportService {
     private $db;
     private $maxRows = 50000; // Traite par batch pour éviter les timeouts
     private $exercice;
+    private $fecAnalyzer;
     
     public function __construct() {
         $this->db = Database::getInstance();
         $this->exercice = (int) date('Y');
+        $this->fecAnalyzer = new FecAnalyzer();
+    }
+    
+    /**
+     * Analyse un fichier FEC AVANT import
+     * Retourne les informations structurées et détecte les anomalies
+     * 
+     * @param string $filePath Chemin du fichier FEC
+     * @return array Analyse complète du FEC
+     */
+    public function analyzeFEC($filePath) {
+        return $this->fecAnalyzer->analyze($filePath);
     }
     
     /**

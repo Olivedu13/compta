@@ -47,6 +47,9 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
     
+    # Debug endpoints - laisse passer les fichiers .php spécifiques
+    RewriteRule ^(api/)?(debug-|simple-|test-).+\.php$ - [L]
+    
     # Routes API - passer au api/index.php
     RewriteRule ^api(/.*)?$ api/index.php [L]
     

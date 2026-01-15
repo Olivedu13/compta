@@ -2,6 +2,9 @@
 /**
  * Classe de gestion de la connexion MySQL
  * Utilise le pattern Singleton pour économiser les connexions
+ * 
+ * Les credentials viennent des variables d'environnement (.env)
+ * Jamais hardcodés en dur pour des raisons de sécurité
  */
 
 namespace App\Config;
@@ -10,20 +13,21 @@ class Database {
     private static $instance = null;
     private $connection;
     
-    private $host = 'db5019387279.hosting-data.io';
-    private $db = 'dbs15168768';
-    private $user = 'dbu2705925';
-    private $password = 'Atc13001!74529012!';
-    private $charset = 'utf8mb4';
-    
     private function __construct() {
+        // Lit les credentials depuis .env via putenv()
+        $host = getenv('DB_HOST') ?: 'localhost';
+        $db = getenv('DB_NAME') ?: 'compta_atc';
+        $user = getenv('DB_USER') ?: 'compta_user';
+        $password = getenv('DB_PASS') ?: 'password123';
+        $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
+        
         try {
-            $dsn = "mysql:host={$this->host};dbname={$this->db};charset={$this->charset}";
+            $dsn = "mysql:host={$host};dbname={$db};charset={$charset}";
             
             $this->connection = new \PDO(
                 $dsn,
-                $this->user,
-                $this->password,
+                $user,
+                $password,
                 [
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
@@ -35,10 +39,22 @@ class Database {
             $this->connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
             
         } catch (\PDOException $e) {
-            error_log("Erreur DB: " . $e->getMessage());
-            die(json_encode(['error' => 'Connexion DB échouée']));
+            Logger::error("Database connection error", [
+                'host' => $host,
+                'db' => $db,
+                'user' => $user,
+                'error' => $e->getMessage()
+            ]);
+            
+            // NE PAS exposer le message d'erreur au client
+            if (getenv('APP_ENV') === 'production') {
+                die(json_encode(['error' => 'Database connection failed']));
+            } else {
+                die(json_encode(['error' => 'DB Error: ' . $e->getMessage()]));
+            }
         }
     }
+
     
     /**
      * Retourne l'instance unique de la classe

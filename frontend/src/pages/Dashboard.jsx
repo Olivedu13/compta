@@ -41,9 +41,11 @@ import {
 import CompareIcon from '@mui/icons-material/Compare';
 import apiService from '../services/api';
 import KPICard from '../components/KPICard';
+import AnalysisSection from '../components/AnalysisSection';
+import AdvancedAnalytics from '../components/AdvancedAnalytics';
 
 export default function Dashboard() {
-  const [exercice, setExercice] = useState(new Date().getFullYear());
+  const [exercice, setExercice] = useState(null); // null au démarrage, sera défini après chargement des années
   const [annees, setAnnees] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [sig, setSig] = useState(null);
@@ -55,31 +57,51 @@ export default function Dashboard() {
   const [compareData, setCompareData] = useState(null);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  // Charger la liste des années disponibles
+  // Charger la liste des années disponibles en premier
   useEffect(() => {
     const loadAnnees = async () => {
       try {
         const response = await apiService.getAnnees();
-        setAnnees(response.data.data || []);
+        // Response.data.data est un array de nombres [2024, 2023, ...]
+        const years = Array.isArray(response.data.data) ? response.data.data : [];
+        
+        if (years.length > 0) {
+          setAnnees(years);
+          // Défini exercice à la première année disponible
+          setExercice(years[0]);
+        } else {
+          setAnnees([]);
+          setExercice(2024); // Fallback
+          setError('Aucune année disponible');
+        }
       } catch (err) {
         console.error('Erreur chargement années:', err);
+        setAnnees([2024]); // Fallback
+        setExercice(2024);
+        setError('Erreur lors du chargement des années');
       }
     };
     loadAnnees();
   }, []);
 
+  // Charger les données UNIQUEMENT après que exercice soit défini
   useEffect(() => {
+    if (exercice === null) return; // N'exécute pas si exercice n'est pas encore défini
+
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const [kpisResponse, sigResponse] = await Promise.all([
-          apiService.getKPIs(exercice),
+        const [kpisDetailedResponse, sigResponse] = await Promise.all([
+          apiService.getKPIsDetailed(exercice),
           apiService.getSIG(exercice)
         ]);
 
-        setKpis(kpisResponse.data.data);
+        // Utilise les vrais KPIs détaillés
+        const kpisData = kpisDetailedResponse.data.kpis;
+        
+        setKpis(kpisData);
         setSig(sigResponse.data.data);
         setWaterfallData(sigResponse.data.data.waterfall_data);
       } catch (err) {
@@ -243,7 +265,7 @@ export default function Dashboard() {
             onChange={(e) => setExercice(e.target.value)}
           >
             {annees.map(year => (
-              <MenuItem key={year.annee} value={year.annee}>{year.annee}</MenuItem>
+              <MenuItem key={year} value={year}>{year}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -258,7 +280,7 @@ export default function Dashboard() {
 
       {/* KPI Stocks */}
       <Typography variant="h5" sx={{ mb: 2, mt: 4 }}>
-        Stocks Bijouterie
+        Actifs Principaux
       </Typography>
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -270,22 +292,8 @@ export default function Dashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Stock Diamants"
-            value={kpis?.stock?.diamants || 0}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KPICard
-            title="Stock Bijoux"
-            value={kpis?.stock?.bijoux || 0}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KPICard
             title="Total Stock"
-            value={kpis?.stock?.total || 0}
+            value={kpis?.stock?.or || 0}
           />
         </Grid>
       </Grid>
@@ -343,25 +351,34 @@ export default function Dashboard() {
         Détail des SIG
       </Typography>
       <Grid container spacing={2}>
-        {sig?.cascade && Object.entries(sig.cascade).map(([key, value]) => (
-          <Grid item xs={12} md={6} key={key}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="body2" color="textSecondary">
-                {value.libelle}
-              </Typography>
-              <Typography variant="h6" sx={{ my: 1 }}>
-                {new Intl.NumberFormat('fr-FR', {
-                  style: 'currency',
-                  currency: 'EUR'
-                }).format(value.valeur)}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                {value.description}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
+        {sig?.cascade && Object.entries(sig.cascade).map(([key, value]) => {
+          // La structure est directement value = { formatted: {...}, description: "..." }
+          // Pas besoin de vérifier, on sait que c'est valide
+          const { est_positif = false, couleur = '#999', valeur_affichee = '0,00' } = value.formatted || {};
+          
+          return (
+            <Grid item xs={12} md={6} key={key}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="body2" color="textSecondary">
+                  {value.description}
+                </Typography>
+                <Typography variant="h6" sx={{ my: 1, color: couleur }}>
+                  {est_positif ? '+' : '−'} {valeur_affichee} €
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {key.replace(/_/g, ' ').toUpperCase()}
+                </Typography>
+              </Paper>
+            </Grid>
+          );
+        })}
       </Grid>
+
+      {/* ANALYSE FINANCIÈRE */}
+      <AnalysisSection exercice={exercice} />
+
+      {/* ANALYTICS AVANCÉE */}
+      <AdvancedAnalytics exercice={exercice} />
 
       {/* Dialog Comparaison */}
       <Dialog open={compareOpen} onClose={handleCompareClose} maxWidth="sm" fullWidth>
