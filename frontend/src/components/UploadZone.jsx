@@ -31,7 +31,9 @@ import apiService from '../services/api';
 
 // Détecteur de type de fichier amélioré
 const detectFileType = (fileName) => {
-  const ext = fileName.split('.').pop().toLowerCase();
+  if (!fileName || typeof fileName !== 'string') return null;
+  
+  const ext = (fileName || '').split('.').pop().toLowerCase();
   
   const types = {
     'xlsx': { name: 'Excel', type: 'excel', icon: '📊' },
