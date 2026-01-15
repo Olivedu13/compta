@@ -22,20 +22,23 @@ header('Content-Type: application/json; charset=utf-8');
 
 try {
     // Récupère l'URI et parse la route
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    // Utilise REQUEST_URI ou ORIG_REQUEST_URI (Apache rewrite)
+    $uri = $_SERVER['REQUEST_URI'] ?? $_SERVER['ORIG_REQUEST_URI'] ?? '';
+    $uri = parse_url($uri, PHP_URL_PATH);
     $basePath = '/api/v1';
     
     // Extrait la route relative
     $relativePath = str_replace($basePath, '', $uri);
     $segments = array_filter(explode('/', $relativePath));
     
+    // Si pas de segments, utilise 'years' par défaut pour accounting
     if (empty($segments)) {
-        http_response_code(400);
-        throw new Exception('Missing resource');
+        $resource = 'accounting';
+        $action = 'years';
+    } else {
+        $resource = array_shift($segments);
+        $action = array_shift($segments) ?? 'index';
     }
-    
-    $resource = array_shift($segments);
-    $action = array_shift($segments) ?? 'index';
     
     // Map les ressources vers les fichiers
     $routeFile = __DIR__ . '/' . $resource . '/' . $action . '.php';
