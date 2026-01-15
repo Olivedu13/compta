@@ -1,7 +1,7 @@
 /**
- * SigFormulaVerifier - Vérification des formules SIG
- * Phase 3b: Refactorisé avec sous-composants réutilisables
- * 647 lignes → 75 lignes (-88%)
+ * SigFormulaVerifier - Composant refactorisé (Phase 3b)
+ * Vérification des formules SIG (Soldes Intermédiaires de Gestion)
+ * Réduit de 647 → 75 lignes
  */
 
 import React, { useState } from 'react';
@@ -10,13 +10,7 @@ import { ErrorBoundary } from './common';
 import SigFormulaCard from './sig/SigFormulaCard';
 import { sigFormulas } from './sig/SigFormulasLibrary';
 
-/**
- * SigFormulaVerifier - Composant de vérification des formules SIG
- * 
- * Affiche les formules de calcul du SIG (Soldes Intermédiaires de Gestion)
- * avec documentation expert comptable et permet la vérification ensemble.
- */
-export default function SigFormulaVerifier({ analysisData, onFormulaValidation }) {
+const SigFormulaVerifier = ({ analysisData, onFormulaValidation }) => {
   const [validationNotes, setValidationNotes] = useState({});
 
   const handleValidationSave = (formulaId, notes) => {
@@ -30,7 +24,6 @@ export default function SigFormulaVerifier({ analysisData, onFormulaValidation }
   return (
     <ErrorBoundary>
       <Box sx={{ py: 3 }}>
-        {/* Header */}
         <Card sx={{ mb: 3, backgroundColor: 'info.light' }}>
           <CardContent>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
@@ -48,7 +41,7 @@ export default function SigFormulaVerifier({ analysisData, onFormulaValidation }
           </CardContent>
         </Card>
 
-        {/* Formules */}
+        {/* Liste des Formules */}
         <Box>
           {sigFormulas.map((formula) => (
             <SigFormulaCard
@@ -60,7 +53,7 @@ export default function SigFormulaVerifier({ analysisData, onFormulaValidation }
           ))}
         </Box>
 
-        {/* Résumé */}
+        {/* Résumé Validation */}
         {Object.keys(validationNotes).length > 0 && (
           <Card sx={{ mt: 3, backgroundColor: '#e8f5e9', borderLeft: '4px solid #4caf50' }}>
             <CardContent>
@@ -76,4 +69,6 @@ export default function SigFormulaVerifier({ analysisData, onFormulaValidation }
       </Box>
     </ErrorBoundary>
   );
-}
+};
+
+export default SigFormulaVerifier;
