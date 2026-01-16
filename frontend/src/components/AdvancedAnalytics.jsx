@@ -72,9 +72,14 @@ const AdvancedAnalytics = ({ exercice }) => {
   } = analytics;
 
   // Construire des objets compatibles avec les composants
+  // API retourne: { mois: '2024-01', debit: 17000, credit: 17000, operations: 6 }
+  // Composant attend: { mois: '2024-01', ca: 17000 }
   const ca = {
     total: stats_globales?.ca_brut || 0,
-    mensuel: (evolution_mensuelle || []).map(m => ({ periode: m.periode, ca: m.ca_net || 0 })) || [],
+    mensuel: (evolution_mensuelle || []).map(m => ({ 
+      mois: m.mois, 
+      ca: m.debit || 0  // Utiliser debit comme CA
+    })) || [],
     trimestriel: []
   };
 

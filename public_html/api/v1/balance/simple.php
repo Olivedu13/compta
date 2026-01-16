@@ -11,7 +11,7 @@
  * @return {success: boolean, data: array, pagination: object, error?: string}
  */
 
-require_once dirname(dirname(dirname(dirname(__FILE__)))) . '/backend/bootstrap.php';
+require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/backend/bootstrap.php';
 
 use App\Config\Database;
 use App\Config\InputValidator;
@@ -41,7 +41,7 @@ try {
     
     // Données avec JOIN sécurisé
     $balances = $db->fetchAll(
-        "SELECT b.*, p.libelle, p.classe_racine 
+        "SELECT b.*, p.compte_lib 
          FROM fin_balance b
          LEFT JOIN sys_plan_comptable p ON b.compte_num = p.compte_num
          WHERE b.exercice = ?

@@ -7,6 +7,8 @@
  * - exercice (required): Année comptable (ex: 2024)
  */
 
+require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/backend/bootstrap.php';
+
 use App\Config\InputValidator;
 use App\Config\Logger;
 

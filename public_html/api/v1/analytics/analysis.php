@@ -7,6 +7,8 @@
  * - exercice (required): Année comptable (ex: 2024)
  */
 
+require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/backend/bootstrap.php';
+
 use App\Config\InputValidator;
 use App\Config\Logger;
 
@@ -26,17 +28,17 @@ try {
             SUBSTRING(e.ecriture_date, 1, 7) as mois,
             SUM(CASE WHEN e.debit > 0 THEN e.debit ELSE -e.credit END) as ca_mensuel
         FROM fin_ecritures_fec e
-        WHERE YEAR(e.ecriture_date) = ?
+        WHERE strftime('%Y', e.ecriture_date) = ?
           AND SUBSTRING(e.compte_num, 1, 1) = '7'
         GROUP BY SUBSTRING(e.ecriture_date, 1, 7)
         ORDER BY mois",
-        [$exercice]
+        [(string)$exercice]
     );
     
     // 2. TOP CLIENTS (411xxx)
     $topClients = $db->fetchAll(
         "SELECT 
-            p.libelle as client,
+            p.compte_lib as client,
             b.compte_num,
             ABS(b.solde) as montant
         FROM fin_balance b
@@ -52,7 +54,7 @@ try {
     // 3. TOP FOURNISSEURS (401xxx)
     $topFournisseurs = $db->fetchAll(
         "SELECT 
-            p.libelle as fournisseur,
+            p.compte_lib as fournisseur,
             b.compte_num,
             ABS(b.solde) as montant
         FROM fin_balance b

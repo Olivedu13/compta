@@ -21,7 +21,7 @@ try {
     
     // Get DB
     if (!isset($db)) {
-        $projectRoot = dirname(dirname(dirname(dirname(__FILE__))));
+        $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
         $dbPath = $projectRoot . '/compta.db';
         if (!file_exists($dbPath)) {
             throw new Exception("Database not found");
