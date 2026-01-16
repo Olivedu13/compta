@@ -48,11 +48,11 @@ try {
         LIMIT 20
     ");
     $stmt->execute([$exercice]);
-    $tiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $topTiersRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Process tiers data
     $topTiers = [];
-    foreach ($tiers as $tier) {
+    foreach ($topTiersRaw as $tier) {
         $topTiers[] = [
             'numero' => $tier['numero_tiers'],
             'nom' => $tier['lib_tiers'],
@@ -153,10 +153,10 @@ try {
         }
         // Tiers (411, 401 - comptes 4)
         if (substr($num, 0, 3) === '411') {
-            $tiers['clients'] += $solde;
+            $tiersBalance['clients'] += $solde;
         }
         if (substr($num, 0, 3) === '401') {
-            $tiers['fournisseurs'] += $solde;
+            $tiersBalance['fournisseurs'] += $solde;
         }
     }
     
@@ -170,7 +170,7 @@ try {
         ],
         'stock' => $stock,
         'tresorerie' => $tresorerie,
-        'tiers' => $tiers,
+        'tiers' => $tiersBalance,
         'par_classe' => $parClasse,
         'top_tiers' => $topTiers
     ];
