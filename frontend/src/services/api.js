@@ -167,7 +167,7 @@ export const apiService = {
   },
 
   getCashflow(params = {}) {
-    return api.get('/cashflow', { params });
+    return api.get('/v1/cashflow/simple.php', { params });
   },
 
   getCashflowDetail(journal, params = {}) {

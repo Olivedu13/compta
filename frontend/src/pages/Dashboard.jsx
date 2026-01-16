@@ -88,9 +88,9 @@ export default function Dashboard() {
           apiService.getSIG(exercice)
         ]);
 
-        setKpis(kpisDetailedResponse.data.kpis);
+        setKpis(kpisDetailedResponse.data.data.kpis);
         setSig(sigResponse.data.data);
-        setWaterfallData(sigResponse.data.data.waterfall_data);
+        setWaterfallData(sigResponse.data.data.waterfall_data || null);
       } catch (err) {
         console.error('Erreur chargement dashboard:', err);
         setError('Erreur lors du chargement des données');

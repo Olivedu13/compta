@@ -50,10 +50,14 @@
     # Debug endpoints - laisse passer les fichiers .php spécifiques
     RewriteRule ^(api/)?(debug-|simple-|test-).+\.php$ - [L]
     
-    # Routes API v1 - passer au api/v1/index.php
+    # Routes API v1 - vérifier que le fichier existe pas avant de router
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/v1(/.*)?$ api/v1/index.php [L]
     
-    # Routes API legacy - passer au api/index.php (backward compatibility)
+    # Routes API legacy - vérifier que le fichier existe pas avant de router
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api(/.*)?$ api/index.php [L]
     
     # Tout le reste vers index.html (SPA React)

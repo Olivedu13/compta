@@ -97,7 +97,7 @@ export default function SIGPage() {
         ]);
 
         setSig(sigResponse.data.data);
-        setCashflow(cashflowResponse.data);
+        setCashflow(cashflowResponse.data.data);
       } catch (err) {
         console.error('Erreur chargement données:', err);
         setError('Erreur lors du chargement des données');

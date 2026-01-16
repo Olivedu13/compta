@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme/theme';
 import { AuthProvider } from './hooks/useAuth.jsx';
+import { ErrorBoundary } from './components/common';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -16,9 +17,10 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <AuthProvider>
-          <Routes>
+      <ErrorBoundary>
+        <Router>
+          <AuthProvider>
+            <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
             
@@ -67,9 +69,10 @@ function App() {
             {/* Redirect root to dashboard or login */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </AuthProvider>
-      </Router>
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }
