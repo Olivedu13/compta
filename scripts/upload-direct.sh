@@ -42,7 +42,10 @@ put /workspaces/compta/frontend/dist/index.html public_html/frontend/index.html
 put /workspaces/compta/frontend/dist/index.js public_html/frontend/index.js
 put /workspaces/compta/frontend/dist/style.css public_html/frontend/style.css
 put /workspaces/compta/public_html/api/index.php public_html/api/index.php
-put /workspaces/compta/simple-import-STANDALONE.php public_html/api/simple-import.php
+
+# 🔴 FICHIER CRITIQUE: simple-import.php avec FIX suppression des écritures
+put /workspaces/compta/public_html/api/simple-import.php public_html/api/simple-import.php
+
 put /workspaces/compta/public_html/api/v1/index.php public_html/api/v1/index.php
 put /workspaces/compta/public_html/api/v1/sig-simple.php public_html/api/v1/sig-simple.php
 put /workspaces/compta/public_html/api/v1/sig/simple.php public_html/api/v1/sig/simple.php
@@ -72,6 +75,7 @@ put /workspaces/compta/backend/config/schema.sql backend/config/schema.sql
 put /workspaces/compta/backend/config/Logger.php backend/config/Logger.php
 
 # Backend services
+# 🔴 FICHIER IMPORTANT: ImportService.php avec FIX suppression des écritures
 put /workspaces/compta/backend/services/ImportService.php backend/services/ImportService.php
 put /workspaces/compta/backend/services/SigCalculator.php backend/services/SigCalculator.php
 
