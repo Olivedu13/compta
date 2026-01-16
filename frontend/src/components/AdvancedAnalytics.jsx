@@ -26,7 +26,9 @@ const AdvancedAnalytics = ({ exercice }) => {
       try {
         setError(null);
         const response = await apiService.getAnalyticsAdvanced(exercice);
-        setAnalytics(response.data);
+        // response.data = { success: true, data: {...} }
+        // On veut response.data.data pour les données réelles
+        setAnalytics(response.data?.data || response.data);
       } catch (err) {
         console.error('Erreur chargement analytics:', err);
         setError(err.response?.data?.error || 'Erreur lors du chargement des données');
@@ -35,7 +37,9 @@ const AdvancedAnalytics = ({ exercice }) => {
       }
     };
 
-    fetchAnalytics();
+    if (exercice) {
+      fetchAnalytics();
+    }
   }, [exercice]);
 
   if (loading) {
@@ -74,12 +78,19 @@ const AdvancedAnalytics = ({ exercice }) => {
   // Construire des objets compatibles avec les composants
   // API retourne: { mois: '2024-01', debit: 17000, credit: 17000, operations: 6 }
   // Composant attend: { mois: '2024-01', ca: 17000 }
+  
+  // Transformer evolution_mensuelle
+  const caMensuelTransformed = (evolution_mensuelle || []).map(m => ({ 
+    mois: m.mois, 
+    ca: m.debit || 0  // Utiliser debit comme CA
+  }));
+  
+  // Calculer CA total depuis les données mensuelles
+  const caTotalCalculated = caMensuelTransformed.reduce((sum, m) => sum + (m.ca || 0), 0);
+  
   const ca = {
-    total: stats_globales?.ca_brut || 0,
-    mensuel: (evolution_mensuelle || []).map(m => ({ 
-      mois: m.mois, 
-      ca: m.debit || 0  // Utiliser debit comme CA
-    })) || [],
+    total: caTotalCalculated,  // Calculer au lieu d'utiliser ca_brut
+    mensuel: caMensuelTransformed || [],
     trimestriel: []
   };
 

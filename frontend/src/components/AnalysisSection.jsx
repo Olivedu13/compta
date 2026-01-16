@@ -40,17 +40,72 @@ const AnalysisSection = ({ exercice }) => {
   useEffect(() => {
     const fetchAnalyse = async () => {
       try {
-        // Utiliser analytics-advanced au lieu d'analyse-simple pour avoir les détails clients/fournisseurs
         const response = await apiService.getAnalyticsAdvanced(exercice);
-        setAnalyse(response.data);
+        const rawData = response.data?.data || response.data || {};
+        
+        // Transformer les données de advanced.php en format attendu
+        const evolution = rawData.evolution_mensuelle || [];
+        const tiers = rawData.tiers_actifs || [];
+        
+        // Calculer CA total depuis evolution_mensuelle
+        const caTotalCalculated = evolution.reduce((sum, m) => sum + (m.debit || 0), 0);
+        
+        // Transformer evolution_mensuelle en format mensuel
+        const caMensuelTransformed = evolution.map(m => ({
+          mois: m.mois,
+          ca: m.debit || 0
+        }));
+        
+        // Séparer clients (debit) et fournisseurs (credit)
+        const topClientsTransformed = tiers
+          .filter(t => t.debit > 0)
+          .slice(0, 10)
+          .map(t => ({
+            client: t.libelle,
+            montant: t.debit
+          }));
+          
+        const topFournisseursTransformed = tiers
+          .filter(t => t.credit > 0)
+          .slice(0, 10)
+          .map(t => ({
+            fournisseur: t.libelle,
+            montant: t.credit
+          }));
+        
+        // Reconstruire la structure attendue
+        const transformedData = {
+          ca: {
+            total: caTotalCalculated,
+            mensuel: caMensuelTransformed,
+            trimestriel: []
+          },
+          couts: {
+            matiere: 0,
+            salaires: 0,
+            frais: 0
+          },
+          top_clients: topClientsTransformed,
+          top_fournisseurs: topFournisseursTransformed,
+          ratios_exploitation: {
+            ratio_achats: 0,
+            ratio_frais_banc: 0,
+            ratio_salaires: 0
+          }
+        };
+        
+        setAnalyse(transformedData);
       } catch (err) {
         console.error('Erreur chargement analyse:', err);
+        setAnalyse(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalyse();
+    if (exercice) {
+      fetchAnalyse();
+    }
   }, [exercice]);
 
   if (loading || !analyse) {
@@ -74,9 +129,9 @@ const AnalysisSection = ({ exercice }) => {
   const caTotal = Math.abs(parseFloat(ca?.total || 0));
 
   // Calculs pour les ratios
-  const ratioAchats = caTotal > 0 ? ratios_exploitation.ratio_achats : 0;
-  const ratioFrais = caTotal > 0 ? ratios_exploitation.ratio_frais_banc : 0;
-  const ratioSalaires = caTotal > 0 ? ratios_exploitation.ratio_salaires : 0;
+  const ratioAchats = caTotal > 0 ? (ratios_exploitation?.ratio_achats || 0) : 0;
+  const ratioFrais = caTotal > 0 ? (ratios_exploitation?.ratio_frais_banc || 0) : 0;
+  const ratioSalaires = caTotal > 0 ? (ratios_exploitation?.ratio_salaires || 0) : 0;
   const margeAchats = caTotal - (couts?.matiere || 0);
 
   return (
