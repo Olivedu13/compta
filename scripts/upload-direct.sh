@@ -29,6 +29,7 @@ cd compta
 -mkdir public_html/api/v1/accounting
 -mkdir public_html/api/v1/analytics
 -mkdir public_html/api/v1/balance
+-mkdir public_html/api/v1/cashflow
 -mkdir public_html/api/v1/kpis
 -mkdir public_html/api/v1/sig
 -mkdir public_html/api/v1/years
@@ -37,12 +38,16 @@ cd compta
 put /workspaces/compta/public_html/.htaccess public_html/.htaccess
 put /workspaces/compta/public_html/.user.ini public_html/.user.ini
 put /workspaces/compta/public_html/index.html public_html/index.html
+put /workspaces/compta/frontend/dist/index.html public_html/frontend/index.html
+put /workspaces/compta/frontend/dist/index.js public_html/frontend/index.js
+put /workspaces/compta/frontend/dist/style.css public_html/frontend/style.css
 put /workspaces/compta/public_html/api/index.php public_html/api/index.php
 put /workspaces/compta/simple-import-STANDALONE.php public_html/api/simple-import.php
 put /workspaces/compta/public_html/api/v1/index.php public_html/api/v1/index.php
 put /workspaces/compta/public_html/api/v1/sig-simple.php public_html/api/v1/sig-simple.php
 put /workspaces/compta/public_html/api/v1/sig/simple.php public_html/api/v1/sig/simple.php
 put /workspaces/compta/public_html/api/v1/accounting/sig.php public_html/api/v1/accounting/sig.php
+put /workspaces/compta/public_html/api/v1/cashflow/simple.php public_html/api/v1/cashflow/simple.php
 put /workspaces/compta/public_html/api/v1/kpis/detailed.php public_html/api/v1/kpis/detailed.php
 put /workspaces/compta/public_html/api/v1/analytics/advanced.php public_html/api/v1/analytics/advanced.php
 put /workspaces/compta/public_html/api/v1/years/list.php public_html/api/v1/years/list.php

@@ -35,7 +35,7 @@ try {
     
     // Get all journals
     $stmt = $db->prepare("
-        SELECT DISTINCT journal FROM ecritures WHERE exercice = ? ORDER BY journal
+        SELECT DISTINCT journal_code FROM ecritures WHERE exercice = ? ORDER BY journal_code
     ");
     $stmt->execute([$exercice]);
     $journals = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -45,17 +45,20 @@ try {
     foreach ($journals as $journal) {
         $stmt = $db->prepare("
             SELECT 
+                journal_lib,
                 SUM(CAST(debit AS REAL)) as total_debit,
                 SUM(CAST(credit AS REAL)) as total_credit,
                 COUNT(*) as nb_ecritures
             FROM ecritures
-            WHERE exercice = ? AND journal = ?
+            WHERE exercice = ? AND journal_code = ?
+            GROUP BY journal_code
         ");
         $stmt->execute([$exercice, $journal]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         
         $parJournal[] = [
             'journal' => $journal,
+            'journal_lib' => $row['journal_lib'] ?? '',
             'entrees' => (float)($row['total_debit'] ?? 0),
             'sorties' => (float)($row['total_credit'] ?? 0),
             'flux_net' => (float)(($row['total_debit'] ?? 0) - ($row['total_credit'] ?? 0)),
@@ -74,7 +77,7 @@ try {
                 SUM(CAST(credit AS REAL)) as total_credit,
                 COUNT(*) as nb_ecritures
             FROM ecritures
-            WHERE exercice = ? AND strftime('%m', date_piece) = ?
+            WHERE exercice = ? AND strftime('%m', ecriture_date) = ?
         ");
         $stmt->execute([$exercice, $monthStr]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
