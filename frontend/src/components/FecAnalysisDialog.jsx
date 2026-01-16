@@ -372,13 +372,13 @@ export default function FecAnalysisDialog({
                             <Typography variant="body2">
                                 {analysis.recommendations.summary}
                             </Typography>
-                            {analysis.recommendations.cleaning_needed.length > 0 && (
+                            {(analysis?.recommendations?.cleaning_needed || []).length > 0 && (
                                 <Box sx={{ mt: 2 }}>
                                     <Typography variant="caption" color="textSecondary">
                                         Actions recommandées:
                                     </Typography>
                                     <List dense>
-                                        {analysis.recommendations.cleaning_needed.map(
+                                        {(analysis?.recommendations?.cleaning_needed || []).map(
                                             (action, idx) => (
                                                 <ListItem key={idx}>
                                                     <ListItemIcon sx={{ minWidth: 32 }}>
@@ -415,7 +415,7 @@ export default function FecAnalysisDialog({
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {Object.entries(analysis.headers.headers).map(
+                                    {Object.entries(analysis?.headers?.headers || {}).map(
                                         ([standardName, headerData]) => (
                                             <TableRow key={standardName}>
                                                 <TableCell>

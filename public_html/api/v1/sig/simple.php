@@ -78,7 +78,21 @@ try {
         'charges' => abs($classe6),
         'resultat_net' => abs($classe7) - abs($classe6),
         'nb_ecritures' => (int)$stats['cnt'],
-        'balance' => abs($classe1 + $classe2 + $classe3 + $classe4 + $classe5 + $classe6 + $classe7) < 0.01 ? 'OK' : 'WARN'
+        'balance' => abs($classe1 + $classe2 + $classe3 + $classe4 + $classe5 + $classe6 + $classe7) < 0.01 ? 'OK' : 'WARN',
+        'cascade' => [
+            'classe_1_actifs' => (float)$classe1,
+            'classe_2_passifs' => (float)$classe2,
+            'classe_3_stocks' => (float)$classe3,
+            'classe_4_tiers' => (float)$classe4,
+            'classe_5_tresorerie' => (float)$classe5,
+            'classe_6_charges' => (float)$classe6,
+            'classe_7_produits' => (float)$classe7
+        ],
+        'waterfall_data' => [
+            ['name' => 'CA Brut', 'value' => abs($classe7)],
+            ['name' => 'Charges', 'value' => -abs($classe6)],
+            ['name' => 'Résultat Net', 'value' => abs($classe7) - abs($classe6)]
+        ]
     ];
     
     http_response_code(200);

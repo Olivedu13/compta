@@ -131,6 +131,35 @@ try {
     $totalDebit = (float)$stats['total_debit'];
     $totalCredit = (float)$stats['total_credit'];
     
+    // Extract specific accounts for dashboard
+    $stock = ['or' => 0];
+    $tresorerie = ['banque' => 0, 'caisse' => 0];
+    $tiers = ['clients' => 0, 'fournisseurs' => 0];
+    
+    foreach ($comptes as $compte) {
+        $num = $compte['compte_num'];
+        $solde = (float)$compte['total_debit'] - (float)$compte['total_credit'];
+        
+        // Stock (31x, 32x, 37x - comptes 3)
+        if (substr($num, 0, 2) === '31' || substr($num, 0, 2) === '32' || substr($num, 0, 2) === '37') {
+            $stock['or'] += $solde;
+        }
+        // Trésorerie (51x, 53x - comptes 5)
+        if (substr($num, 0, 2) === '51') {
+            $tresorerie['banque'] += $solde;
+        }
+        if (substr($num, 0, 2) === '53') {
+            $tresorerie['caisse'] += $solde;
+        }
+        // Tiers (411, 401 - comptes 4)
+        if (substr($num, 0, 3) === '411') {
+            $tiers['clients'] += $solde;
+        }
+        if (substr($num, 0, 3) === '401') {
+            $tiers['fournisseurs'] += $solde;
+        }
+    }
+    
     $kpis = [
         'exercice' => $exercice,
         'global' => [
@@ -139,6 +168,9 @@ try {
             'total_credit' => $totalCredit,
             'balance' => abs($totalDebit - $totalCredit) < 0.01 ? 'OK' : 'ERREUR'
         ],
+        'stock' => $stock,
+        'tresorerie' => $tresorerie,
+        'tiers' => $tiers,
         'par_classe' => $parClasse,
         'top_tiers' => $topTiers
     ];

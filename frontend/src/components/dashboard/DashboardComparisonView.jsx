@@ -70,7 +70,7 @@ const DashboardComparisonView = ({ compareData, onBack }) => {
                   <TableCell sx={{ fontWeight: 600, padding: '12px', textAlign: 'left' }}>
                     Indicateur
                   </TableCell>
-                  {Object.keys(compareData.cascade[Object.keys(compareData.cascade)[0]] || {}).map(year => (
+                  {Object.keys((compareData?.cascade?.[Object.keys(compareData?.cascade || {})[0]] || {})).map(year => (
                     <TableCell key={year} sx={{ fontWeight: 600, padding: '12px', textAlign: 'right' }}>
                       {year}
                     </TableCell>
