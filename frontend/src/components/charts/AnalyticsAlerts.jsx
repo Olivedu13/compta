@@ -142,7 +142,7 @@ const AnalyticsAlerts = ({ ratios = {}, solvabilite = {}, cycles = {}, topClient
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {alerts.map((alert, idx) => (
+      {(alerts || []).map((alert, idx) => (
         <Paper
           key={idx}
           sx={{

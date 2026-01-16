@@ -78,7 +78,7 @@ const DashboardComparisonView = ({ compareData, onBack }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Object.entries(compareData.cascade).map(([indicator, yearData]) => (
+                {Object.entries(compareData?.cascade || {}).map(([indicator, yearData]) => (
                   <TableRow key={indicator} sx={{ borderBottom: '1px solid #e0e0e0' }}>
                     <TableCell sx={{ padding: '12px', fontWeight: 500 }}>
                       {indicator}

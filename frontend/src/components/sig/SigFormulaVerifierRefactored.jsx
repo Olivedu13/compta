@@ -43,7 +43,7 @@ const SigFormulaVerifier = ({ analysisData, onFormulaValidation }) => {
 
         {/* Liste des Formules */}
         <Box>
-          {sigFormulas.map((formula) => (
+          {(sigFormulas || []).map((formula) => (
             <SigFormulaCard
               key={formula.id}
               formula={formula}

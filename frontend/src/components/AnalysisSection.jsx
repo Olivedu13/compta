@@ -132,7 +132,7 @@ const AnalysisSection = ({ exercice }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {top_clients.map((client, idx) => {
+              {(top_clients || []).map((client, idx) => {
                 const montantNum = Math.abs(parseFloat(client.montant || 0));
                 const pourcentage = caTotal > 0 ? (montantNum / caTotal * 100).toFixed(1) : 0;
                 let risque = '🟢 Faible';
@@ -177,7 +177,7 @@ const AnalysisSection = ({ exercice }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {top_fournisseurs.map((fourn, idx) => {
+              {(top_fournisseurs || []).map((fourn, idx) => {
                 const montantNum = Math.abs(parseFloat(fourn.montant || 0));
                 const coutsMat = Math.abs(couts?.matiere || 0);
                 const pourcentage = coutsMat > 0 ? (montantNum / coutsMat * 100).toFixed(1) : 0;

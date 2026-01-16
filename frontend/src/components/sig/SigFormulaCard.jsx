@@ -106,7 +106,7 @@ const SigFormulaCard = ({ formula, validationNotes = {}, onValidationSave }) => 
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {formula.details.numerator.map((item, idx) => (
+                        {(formula.details.numerator || []).map((item, idx) => (
                           <TableRow key={idx}>
                             <TableCell sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
                               {item.code}
@@ -135,7 +135,7 @@ const SigFormulaCard = ({ formula, validationNotes = {}, onValidationSave }) => 
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {formula.details.denominator.map((item, idx) => (
+                        {(formula.details.denominator || []).map((item, idx) => (
                           <TableRow key={idx}>
                             <TableCell sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
                               {item.code}
@@ -164,7 +164,7 @@ const SigFormulaCard = ({ formula, validationNotes = {}, onValidationSave }) => 
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {formula.details.deductions.map((item, idx) => (
+                        {(formula.details.deductions || []).map((item, idx) => (
                           <TableRow key={idx}>
                             <TableCell sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
                               {item.code}
@@ -186,7 +186,7 @@ const SigFormulaCard = ({ formula, validationNotes = {}, onValidationSave }) => 
                 <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                   Points de Vérification
                 </Typography>
-                {formula.validationPoints.map((point, idx) => (
+                {(formula.validationPoints || []).map((point, idx) => (
                   <Alert key={idx} severity="success" sx={{ mb: 1 }}>
                     <Typography variant="body2">{point}</Typography>
                   </Alert>
@@ -200,7 +200,7 @@ const SigFormulaCard = ({ formula, validationNotes = {}, onValidationSave }) => 
                 <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                   Attention
                 </Typography>
-                {formula.concerns.map((concern, idx) => (
+                {(formula.concerns || []).map((concern, idx) => (
                   <Alert key={idx} severity="warning" sx={{ mb: 1 }}>
                     <Typography variant="body2">• {concern}</Typography>
                   </Alert>

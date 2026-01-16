@@ -164,7 +164,7 @@ export default function TiersAnalysisWidget({ exercice }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayedTiers.map((tier) => (
+              {(displayedTiers || []).map((tier) => (
                 <TableRow key={tier.numero} hover>
                   <TableCell sx={{ fontWeight: 'bold' }}>{tier.numero}</TableCell>
                   <TableCell>{tier.libelle}</TableCell>

@@ -30,7 +30,7 @@ const DashboardSIGCascade = ({ waterfallData = [], sig = {} }) => {
         📋 Détail des SIG
       </Typography>
       <Grid container spacing={2}>
-        {sig?.cascade && Object.entries(sig.cascade).map(([key, value]) => {
+        {sig?.cascade && Object.entries(sig?.cascade || {}).map(([key, value]) => {
           const { est_positif = false, couleur = '#999', valeur_affichee = '0,00' } = value.formatted || {};
 
           return (

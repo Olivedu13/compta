@@ -46,7 +46,7 @@ export default function SIGDetailedView({ sig }) {
   return (
     <Box>
       <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ mb: 2 }}>
-        {details.map((detail, idx) => (
+        {(details || []).map((detail, idx) => (
           <Tab key={idx} label={`Détail ${idx + 1}`} />
         ))}
       </Tabs>

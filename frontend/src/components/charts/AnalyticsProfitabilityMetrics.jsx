@@ -99,7 +99,7 @@ const AnalyticsProfitabilityMetrics = ({
         </Typography>
       </Grid>
 
-      {Object.entries(variances).map(([key, value]) => (
+      {Object.entries(variances || {}).map(([key, value]) => (
         <Grid item xs={12} sm={6} md={3} key={key}>
           <MetricCard
             title={key}

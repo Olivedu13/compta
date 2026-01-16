@@ -82,7 +82,7 @@ const AnalyticsDetailedAnalysis = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {costStructure.map((item, idx) => (
+          {(costStructure || []).map((item, idx) => (
             <TableRow key={idx}>
               <TableCell>{item.category}</TableCell>
               <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
