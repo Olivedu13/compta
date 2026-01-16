@@ -92,8 +92,8 @@ export default function Dashboard() {
         console.log('✅ KPIs Response:', kpisDetailedResponse);
         console.log('✅ SIG Response:', sigResponse);
         
-        const kpis = kpisDetailedResponse?.data?.data;
-        const sig = sigResponse?.data?.data;
+        const kpis = kpisDetailedResponse?.data?.data || {};
+        const sig = sigResponse?.data?.data || {};
         
         if (!kpis) {
           throw new Error('KPIs data is missing from response');
@@ -104,7 +104,7 @@ export default function Dashboard() {
 
         setKpis(kpis);
         setSig(sig);
-        setWaterfallData(sig?.waterfall_data || null);
+        setWaterfallData(sig?.waterfall_data || []);
         
         console.log('✅ Dashboard data set successfully');
       } catch (err) {

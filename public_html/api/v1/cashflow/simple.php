@@ -21,8 +21,8 @@ try {
         throw new Exception('Parameter exercice is required and must be a valid year');
     }
     
-    // Get DB - 6 levels up: cashflow -> v1 -> api -> public_html -> compta
-    $projectRoot = dirname(dirname(dirname(dirname(dirname(dirname(__FILE__))))));
+    // Get DB - 5 levels up: cashflow -> v1 -> api -> public_html -> compta
+    $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
     $dbPath = $projectRoot . '/compta.db';
     
     if (!file_exists($dbPath)) {

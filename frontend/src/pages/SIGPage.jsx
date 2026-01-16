@@ -100,14 +100,15 @@ export default function SIGPage() {
         console.log('✅ SIG Response:', sigResponse);
         console.log('✅ Cashflow Response:', cashflowResponse);
         
-        const sig = sigResponse?.data?.data;
-        const cashflow = cashflowResponse?.data?.data;
+        const sig = sigResponse?.data?.data || {};
+        const cashflow = cashflowResponse?.data?.data || {};
         
-        if (!sig) {
+        if (!sig || !Object.keys(sig).length) {
           throw new Error('SIG data is missing from response');
         }
-        if (!cashflow) {
-          throw new Error('Cashflow data is missing from response');
+        if (!cashflow || !Object.keys(cashflow).length) {
+          console.warn('⚠️ Cashflow data is missing or empty');
+          // Ne pas bloquer si cashflow est vide
         }
 
         setSig(sig);
@@ -153,7 +154,7 @@ export default function SIGPage() {
   })) : [];
 
   // Préparer données périodes pour comparaison
-  const periodeData = cashflow?.par_periode?.map(p => ({
+  const periodeData = (cashflow?.par_periode || []).map(p => ({
     periode: (p.periode || '').split('-')[1] || p.periode || 'N/A',
     entrees: p.entrees,
     sorties: p.sorties,
@@ -399,7 +400,7 @@ export default function SIGPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {cashflow?.par_journal?.map(j => {
+                      {(cashflow?.par_journal || []).map(j => {
                         const pct = cashflow?.stats_globales?.total_entrees > 0 
                           ? (j.entrees / cashflow.stats_globales.total_entrees * 100).toFixed(1)
                           : 0;

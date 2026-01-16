@@ -122,7 +122,7 @@ export default function CashflowAnalysisWidget({ exercice }) {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 
   // Préparer données pour graphique périodes
-  const periodeData = cashflow?.par_periode?.map(p => ({
+  const periodeData = (cashflow?.par_periode || []).map(p => ({
     periode: (p.periode || '').split('-')[1] || p.periode || 'N/A',
     entrees: p.entrees,
     sorties: p.sorties,
@@ -131,7 +131,7 @@ export default function CashflowAnalysisWidget({ exercice }) {
   })) || [];
 
   // Préparer données pour graphique journaux
-  const journalData = cashflow?.par_journal?.map(j => ({
+  const journalData = (cashflow?.par_journal || []).map(j => ({
     journal: j.journal,
     montant: j.entrees,
     ecritures: j.nb_ecritures
@@ -253,7 +253,7 @@ export default function CashflowAnalysisWidget({ exercice }) {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {cashflow?.par_journal?.map(j => (
+                    {(cashflow?.par_journal || []).map(j => (
                       <TableRow
                         key={j.journal}
                         hover
