@@ -16,6 +16,39 @@ import {
 import AnalyticsCyclesAndRatios from './charts/AnalyticsCyclesAndRatios';
 import AnalyticsAlerts from './charts/AnalyticsAlerts';
 
+// Fonction pour calculer les données trimestrielles depuis les données mensuelles
+const calculateTrimestriel = (evolution_mensuelle) => {
+  const trimestriels = {};
+  
+  (evolution_mensuelle || []).forEach(m => {
+    const [annee, mois] = m.mois.split('-');
+    const moisNum = parseInt(mois);
+    
+    let trimestre;
+    if (moisNum <= 3) trimestre = 'Q1';
+    else if (moisNum <= 6) trimestre = 'Q2';
+    else if (moisNum <= 9) trimestre = 'Q3';
+    else trimestre = 'Q4';
+    
+    const key = `${annee}-${trimestre}`;
+    
+    if (!trimestriels[key]) {
+      trimestriels[key] = {
+        trimestre: key,
+        ca: 0,
+        debit: 0,
+        credit: 0
+      };
+    }
+    
+    trimestriels[key].ca += m.debit || 0;
+    trimestriels[key].debit += m.debit || 0;
+    trimestriels[key].credit += m.credit || 0;
+  });
+  
+  return Object.values(trimestriels);
+};
+
 const AdvancedAnalytics = ({ exercice }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,10 +121,13 @@ const AdvancedAnalytics = ({ exercice }) => {
   // Calculer CA total depuis les données mensuelles
   const caTotalCalculated = caMensuelTransformed.reduce((sum, m) => sum + (m.ca || 0), 0);
   
+  // Calculer les données trimestrielles
+  const caTrimestrielTransformed = calculateTrimestriel(evolution_mensuelle);
+  
   const ca = {
     total: caTotalCalculated,  // Calculer au lieu d'utiliser ca_brut
     mensuel: caMensuelTransformed || [],
-    trimestriel: []
+    trimestriel: caTrimestrielTransformed || []
   };
 
   const marges = {
