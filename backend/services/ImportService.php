@@ -274,6 +274,7 @@ class ImportService {
             $errorCount = 0;
             $batch = [];
             $exerciceDetecte = null; // Sera défini à partir du premier FEC
+            $exerciceDeleted = false; // Flag pour supprimer une seule fois par exercice
             
             // Traite les lignes après l'en-tête
             for ($i = $headerLineIdx + 1; $i < count($lines); $i++) {
@@ -292,6 +293,17 @@ class ImportService {
                         if ($exerciceDetecte === null && isset($rowData['exercice'])) {
                             $exerciceDetecte = $rowData['exercice'];
                             Logger::info("Exercice détecté depuis FEC", ['exercice' => $exerciceDetecte]);
+                            
+                            // SUPPRIME LES ÉCRITURES FEC EXISTANTES POUR CET EXERCICE AVANT D'IMPORTER LES NOUVELLES
+                            if (!$exerciceDeleted) {
+                                Logger::info("Suppression des écritures existantes", ['exercice' => $exerciceDetecte]);
+                                $this->db->query(
+                                    "DELETE FROM ecritures WHERE exercice = ?",
+                                    [$exerciceDetecte]
+                                );
+                                Logger::info("Écritures supprimées", ['exercice' => $exerciceDetecte]);
+                                $exerciceDeleted = true;
+                            }
                         }
                         
                         $batch[] = $rowData;
@@ -319,9 +331,8 @@ class ImportService {
             // Utilise l'exercice détecté du FEC (ou default si non trouvé)
             $exerciceImport = $exerciceDetecte ?? $this->exercice;
             
-            // ÉTAPE 4 : Recalcule la balance à partir des écritures
-            Logger::info("Étape 4/4 : Agrégation de la balance...", ['exercice' => $exerciceImport]);
-            $this->aggregateBalance($exerciceImport);
+            // Note: La table fin_balance n'existe que dans le nouveau schéma
+            // Pour l'ancien schéma (ecritures), pas d'agrégation nécessaire
             
             return [
                 'success' => true,
@@ -671,7 +682,7 @@ class ImportService {
         $placeholders = '(' . implode(', ', array_fill(0, count($columns), '?')) . ')';
         
         // Utilise INSERT au lieu de INSERT IGNORE pour attraper les vrais erreurs
-        $sql = "INSERT INTO fin_ecritures_fec (" . implode(', ', $columns) . ") VALUES ";
+        $sql = "INSERT INTO ecritures (" . implode(', ', $columns) . ") VALUES ";
         $sql .= implode(', ', array_fill(0, count($batch), $placeholders));
         
         $values = [];

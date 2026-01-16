@@ -68,7 +68,45 @@ try {
     }
     
     // ========================================
-    // Étape 2 : Import du FEC
+    // Étape 2 : Détecte l'exercice du FEC
+    // ========================================
+    
+    // Scan la première ligne de données pour détecter l'exercice
+    rewind($handle);
+    fgetcsv($handle, 0, "\t"); // Skip header
+    $firstDataRow = fgetcsv($handle, 0, "\t");
+    rewind($handle);
+    fgetcsv($handle, 0, "\t"); // Skip header again
+    
+    $firstData = [];
+    if ($firstDataRow) {
+        $firstData = array_combine($headers, $firstDataRow);
+    }
+    
+    $exercice = 2024; // Default
+    if (!empty($firstData) && !empty($firstData['EcritureDate'])) {
+        $exercice = (int) substr(trim($firstData['EcritureDate']), 0, 4);
+    }
+    
+    // ========================================
+    // Étape 3 : SUPPRIME LES ÉCRITURES EXISTANTES DE CET EXERCICE
+    // ========================================
+    
+    $deleteStmt = $db->prepare("DELETE FROM ecritures WHERE exercice = ?");
+    $deleteCount = $deleteStmt->rowCount();
+    
+    try {
+        $db->beginTransaction();
+        $deleteStmt->execute([$exercice]);
+        $deleteCount = $deleteStmt->rowCount();
+        $db->commit();
+    } catch (Exception $deleteError) {
+        $db->rollBack();
+        throw new Exception("Erreur lors de la suppression des écritures de $exercice: " . $deleteError->getMessage());
+    }
+    
+    // ========================================
+    // Étape 4 : Import du FEC
     // ========================================
     
     // Prépare l'insertion
@@ -85,7 +123,6 @@ try {
     $count = 0;
     $debit_total = 0.0;
     $credit_total = 0.0;
-    $exercice = 2024;
     
     while (($row = fgetcsv($handle, 0, "\t")) !== false) {
         try {

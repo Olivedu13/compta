@@ -1,0 +1,7 @@
+JournalCode	JournalLib	EcritureNum	EcritureDate	CompteNum	CompteLib	CompAuxNum	CompAuxLib	PieceRef	PieceDate	EcritureLib	Debit	Credit	EcritureLet	DateLet	ValidDate	Montantdevise	Idevise
+AC	Journal des Achats	1	2024-01-15	401	Fournisseurs			FAC001	2024-01-15	Achat papier	1500.00	0.00		2024-01-15	2024-01-15	1500.00	EUR
+AC	Journal des Achats	1	2024-01-15	606	Fournitures			FAC001	2024-01-15	Achat papier	0.00	1500.00		2024-01-15	2024-01-15	1500.00	EUR
+VE	Journal des Ventes	2	2024-01-20	411	Clients			FAV001	2024-01-20	Vente produits	0.00	2500.00		2024-01-20	2024-01-20	2500.00	EUR
+VE	Journal des Ventes	2	2024-01-20	700	Ventes			FAV001	2024-01-20	Vente produits	2500.00	0.00		2024-01-20	2024-01-20	2500.00	EUR
+CL	Journal de Banque	3	2024-01-25	512	Banque			CHQ123	2024-01-25	Encaissement client	0.00	2500.00		2024-01-25	2024-01-25	2500.00	EUR
+CL	Journal de Banque	3	2024-01-25	411	Clients			CHQ123	2024-01-25	Encaissement client	2500.00	0.00		2024-01-25	2024-01-25	2500.00	EUR
