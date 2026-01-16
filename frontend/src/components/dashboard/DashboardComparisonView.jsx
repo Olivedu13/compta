@@ -38,7 +38,7 @@ const DashboardComparisonView = ({ compareData, onBack }) => {
                   </Typography>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart
-                      data={Object.entries(years).map(([year, value]) => ({
+                      data={Object.entries(years || {}).map(([year, value]) => ({
                         year,
                         value: value || 0
                       }))}
@@ -83,7 +83,7 @@ const DashboardComparisonView = ({ compareData, onBack }) => {
                     <TableCell sx={{ padding: '12px', fontWeight: 500 }}>
                       {indicator}
                     </TableCell>
-                    {Object.entries(yearData).map(([year, value]) => (
+                    {Object.entries(yearData || {}).map(([year, value]) => (
                       <TableCell key={year} sx={{ padding: '12px', textAlign: 'right' }}>
                         {new Intl.NumberFormat('fr-FR', {
                           style: 'currency',

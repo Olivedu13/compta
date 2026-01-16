@@ -129,7 +129,7 @@ export default function SIGPage() {
   };
 
   // Préparer données pour graphique cascade
-  const cascadeData = sig?.cascade ? Object.entries(sig.cascade).map(([key, val]) => ({
+  const cascadeData = sig?.cascade ? Object.entries(sig?.cascade || {}).map(([key, val]) => ({
     name: key.replace(/_/g, '\n'),
     value: val.formatted?.valeur_brute || 0,
     color: val.formatted?.couleur || '#999'
@@ -187,7 +187,7 @@ export default function SIGPage() {
         {tabValue === 0 && sig?.cascade && (
           <Box>
             <Grid container spacing={2}>
-              {Object.entries(sig.cascade).map(([key, item]) => {
+              {Object.entries(sig?.cascade || {}).map(([key, item]) => {
                 const formatted = item.formatted || {};
                 return (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={key}>
@@ -275,7 +275,7 @@ export default function SIGPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sig?.cascade && Object.entries(sig.cascade).map(([key, item]) => {
+                  {sig?.cascade && Object.entries(sig?.cascade || {}).map(([key, item]) => {
                     const formatted = item.formatted || {};
                     return (
                       <TableRow key={key} hover>

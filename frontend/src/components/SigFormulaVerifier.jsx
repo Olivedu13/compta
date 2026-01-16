@@ -50,7 +50,7 @@ export default function SigFormulaVerifier({ analysisData, onFormulaValidation }
 
         {/* Formules */}
         <Box>
-          {sigFormulas.map((formula) => (
+          {(sigFormulas || []).map((formula) => (
             <SigFormulaCard
               key={formula.id}
               formula={formula}

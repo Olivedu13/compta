@@ -325,7 +325,7 @@ export default function FecAnalysisDialog({
                     <Alert severity="error" sx={{ mb: 2 }}>
                         <AlertTitle>⚠️ Anomalies Critiques (Import Bloqué)</AlertTitle>
                         <Stack spacing={1}>
-                            {criticalAnomalies.map((anomaly, idx) => (
+                            {(criticalAnomalies || []).map((anomaly, idx) => (
                                 <Box key={idx}>
                                     <Typography variant="caption" component="div">
                                         <strong>{anomaly.code}</strong>: {anomaly.message}
@@ -341,7 +341,7 @@ export default function FecAnalysisDialog({
                     <Alert severity="warning" sx={{ mb: 2 }}>
                         <AlertTitle>⚠️ Avertissements (Non-bloquants)</AlertTitle>
                         <Stack spacing={1}>
-                            {warnings.map((warning, idx) => (
+                            {(warnings || []).map((warning, idx) => (
                                 <Box key={idx}>
                                     <Typography variant="caption" component="div">
                                         <strong>{warning.code}</strong>: {warning.message}

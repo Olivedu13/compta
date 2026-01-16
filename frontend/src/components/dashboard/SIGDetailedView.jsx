@@ -55,7 +55,7 @@ export default function SIGDetailedView({ sig }) {
         <Box>
           {/* Résumé */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            {typeof details[tabValue] === 'object' && Object.entries(details[tabValue]).map(([key, value]) => {
+            {typeof details[tabValue] === 'object' && Object.entries(details?.[tabValue] || {}).map(([key, value]) => {
               if (typeof value !== 'number') return null;
               return (
                 <Grid item xs={6} sm={3} key={key}>
@@ -82,7 +82,7 @@ export default function SIGDetailedView({ sig }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {typeof details[tabValue] === 'object' && Object.entries(details[tabValue]).map(([key, value]) => {
+                {typeof details[tabValue] === 'object' && Object.entries(details?.[tabValue] || {}).map(([key, value]) => {
                   if (typeof value !== 'number') return null;
                   return (
                     <TableRow key={key} hover>
