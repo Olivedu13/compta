@@ -1,0 +1,27 @@
+JournalCode	JournalLib	EcritureNum	EcritureDate	CompteNum	CompteLib	CompAuxNum	CompAuxLib	PieceRef	PieceDate	EcritureLib	Debit	Credit	EcritureLet	DateLet	ValidDate	Montantdevise	Idevise
+AC	Journal des Achats	1	2024-01-10	311	Stock Or			FAC001	2024-01-10	Stock Or initial	10000.00	0.00		2024-01-10	2024-01-10	10000.00	EUR
+AC	Journal des Achats	1	2024-01-10	401	Fournisseurs			FAC001	2024-01-10	Stock Or initial	0.00	10000.00		2024-01-10	2024-01-10	10000.00	EUR
+AC	Journal des Achats	2	2024-01-11	312	Stock Diamants			FAC002	2024-01-11	Stock Diamants	5000.00	0.00		2024-01-11	2024-01-11	5000.00	EUR
+AC	Journal des Achats	2	2024-01-11	401	Fournisseurs			FAC002	2024-01-11	Stock Diamants	0.00	5000.00		2024-01-11	2024-01-11	5000.00	EUR
+AC	Journal des Achats	3	2024-01-12	313	Stock Bijoux			FAC003	2024-01-12	Stock Bijoux	2000.00	0.00		2024-01-12	2024-01-12	2000.00	EUR
+AC	Journal des Achats	3	2024-01-12	401	Fournisseurs			FAC003	2024-01-12	Stock Bijoux	0.00	2000.00		2024-01-12	2024-01-12	2000.00	EUR
+AC	Journal des Achats	4	2024-01-13	600	Achats matières			FAC004	2024-01-13	Achats matières or	2000.00	0.00		2024-01-13	2024-01-13	2000.00	EUR
+AC	Journal des Achats	4	2024-01-13	401	Fournisseurs			FAC004	2024-01-13	Achats matières or	0.00	2000.00		2024-01-13	2024-01-13	2000.00	EUR
+AC	Journal des Achats	5	2024-01-14	601	Achats matieres premieres			FAC005	2024-01-14	Achats diamants	1000.00	0.00		2024-01-14	2024-01-14	1000.00	EUR
+AC	Journal des Achats	5	2024-01-14	401	Fournisseurs			FAC005	2024-01-14	Achats diamants	0.00	1000.00		2024-01-14	2024-01-14	1000.00	EUR
+VE	Journal des Ventes	6	2024-01-20	411	Clients			FAV001	2024-01-20	Vente produits bijouterie	0.00	5000.00		2024-01-20	2024-01-20	5000.00	EUR
+VE	Journal des Ventes	6	2024-01-20	701	Ventes bijoux			FAV001	2024-01-20	Vente produits bijouterie	5000.00	0.00		2024-01-20	2024-01-20	5000.00	EUR
+VE	Journal des Ventes	7	2024-01-21	411	Clients			FAV002	2024-01-21	Vente or travaille	0.00	3000.00		2024-01-21	2024-01-21	3000.00	EUR
+VE	Journal des Ventes	7	2024-01-21	702	Ventes services			FAV002	2024-01-21	Vente or travaille	3000.00	0.00		2024-01-21	2024-01-21	3000.00	EUR
+VE	Journal des Ventes	8	2024-01-22	411	Clients			FAV003	2024-01-22	Vente diamants travailles	0.00	2000.00		2024-01-22	2024-01-22	2000.00	EUR
+VE	Journal des Ventes	8	2024-01-22	701	Ventes bijoux			FAV003	2024-01-22	Vente diamants travailles	2000.00	0.00		2024-01-22	2024-01-22	2000.00	EUR
+CL	Journal de Banque	9	2024-01-25	512	Banque			CHQ123	2024-01-25	Encaissement client	0.00	5000.00		2024-01-25	2024-01-25	5000.00	EUR
+CL	Journal de Banque	9	2024-01-25	411	Clients			CHQ123	2024-01-25	Encaissement client	5000.00	0.00		2024-01-25	2024-01-25	5000.00	EUR
+CL	Journal de Banque	10	2024-01-26	512	Banque			CHQ124	2024-01-26	Encaissement client	0.00	3000.00		2024-01-26	2024-01-26	3000.00	EUR
+CL	Journal de Banque	10	2024-01-26	411	Clients			CHQ124	2024-01-26	Encaissement client	3000.00	0.00		2024-01-26	2024-01-26	3000.00	EUR
+CL	Journal de Banque	11	2024-01-27	512	Banque			CHQ125	2024-01-27	Encaissement client	0.00	2000.00		2024-01-27	2024-01-27	2000.00	EUR
+CL	Journal de Banque	11	2024-01-27	411	Clients			CHQ125	2024-01-27	Encaissement client	2000.00	0.00		2024-01-27	2024-01-27	2000.00	EUR
+CM	Journal de Caisse	12	2024-01-28	530	Caisse			REC001	2024-01-28	Encaissement especes	0.00	500.00		2024-01-28	2024-01-28	500.00	EUR
+CM	Journal de Caisse	12	2024-01-28	411	Clients			REC001	2024-01-28	Encaissement especes	500.00	0.00		2024-01-28	2024-01-28	500.00	EUR
+CL	Journal de Banque	13	2024-01-29	401	Fournisseurs			CHQ200	2024-01-29	Paiement fournisseurs	20000.00	0.00		2024-01-29	2024-01-29	20000.00	EUR
+CL	Journal de Banque	13	2024-01-29	512	Banque			CHQ200	2024-01-29	Paiement fournisseurs	0.00	20000.00		2024-01-29	2024-01-29	20000.00	EUR

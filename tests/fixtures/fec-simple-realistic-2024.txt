@@ -1,0 +1,17 @@
+JournalCode	EcritureNum	EcritureDate	CompteNum	CompteLib	Debit	Credit	EcritureLib	PieceRef	PieceDate
+AC	001	2024-01-05	311	Or	10000.00	0.00	Achat stock or	BL001	2024-01-05
+AC	001	2024-01-05	101	Capital	0.00	10000.00	Apport capital	BL001	2024-01-05
+AC	002	2024-01-08	312	Diamants	5000.00	0.00	Achat diamants	BL002	2024-01-08
+AC	002	2024-01-08	101	Capital	0.00	5000.00	Apport capital	BL002	2024-01-08
+AC	003	2024-01-10	313	Bijoux	2000.00	0.00	Achat bijoux	BL003	2024-01-10
+AC	003	2024-01-10	101	Capital	0.00	2000.00	Apport capital	BL003	2024-01-10
+VT	100	2024-02-05	512	Banque	5000.00	0.00	Apport trésorerie	DEP001	2024-02-05
+VT	100	2024-02-05	101	Capital	0.00	5000.00	Apport trésorerie	DEP001	2024-02-05
+VT	101	2024-02-10	411	Clients	2500.00	0.00	Vente à crédit	FAC001	2024-02-10
+VT	101	2024-02-10	701	Ventes produits	0.00	2500.00	Vente à crédit	FAC001	2024-02-10
+VT	102	2024-02-15	512	Banque	7500.00	0.00	Vente au comptant	FAC002	2024-02-15
+VT	102	2024-02-15	701	Ventes produits	0.00	7500.00	Vente au comptant	FAC002	2024-02-15
+AC	004	2024-03-05	601	Achats matières	1500.00	0.00	Achats	AC001	2024-03-05
+AC	004	2024-03-05	512	Banque	0.00	1500.00	Paiement achats	AC001	2024-03-05
+AC	005	2024-03-10	602	Autres charges	1500.00	0.00	Charges diverses	AC002	2024-03-10
+AC	005	2024-03-10	512	Banque	0.00	1500.00	Paiement charges	AC002	2024-03-10
