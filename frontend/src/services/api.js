@@ -30,15 +30,22 @@ api.interceptors.request.use(
 
 // Intercepteur pour gestion des erreurs
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log(`✅ API ${response.config.method?.toUpperCase()} ${response.config.url} - Status ${response.status}`);
+    return response;
+  },
   error => {
+    console.error(`❌ API ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+    console.error(`   Status: ${error.response?.status}`);
+    console.error(`   Message: ${error.message}`);
+    console.error(`   Response:`, error.response?.data);
+    
     // Si 401 Unauthorized, token expiré - rediriger vers login
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );

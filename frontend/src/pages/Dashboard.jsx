@@ -83,17 +83,34 @@ export default function Dashboard() {
         setLoading(true);
         setError(null);
 
+        console.log('📊 Dashboard fetching data for exercice:', exercice);
         const [kpisDetailedResponse, sigResponse] = await Promise.all([
           apiService.getKPIsDetailed(exercice),
           apiService.getSIG(exercice)
         ]);
 
-        setKpis(kpisDetailedResponse.data.data.kpis);
-        setSig(sigResponse.data.data);
-        setWaterfallData(sigResponse.data.data.waterfall_data || null);
+        console.log('✅ KPIs Response:', kpisDetailedResponse);
+        console.log('✅ SIG Response:', sigResponse);
+        
+        const kpis = kpisDetailedResponse?.data?.data;
+        const sig = sigResponse?.data?.data;
+        
+        if (!kpis) {
+          throw new Error('KPIs data is missing from response');
+        }
+        if (!sig) {
+          throw new Error('SIG data is missing from response');
+        }
+
+        setKpis(kpis);
+        setSig(sig);
+        setWaterfallData(sig?.waterfall_data || null);
+        
+        console.log('✅ Dashboard data set successfully');
       } catch (err) {
-        console.error('Erreur chargement dashboard:', err);
-        setError('Erreur lors du chargement des données');
+        console.error('❌ Erreur chargement dashboard:', err);
+        console.error('❌ Error message:', err.message);
+        setError('Erreur lors du chargement des données: ' + err.message);
       } finally {
         setLoading(false);
       }

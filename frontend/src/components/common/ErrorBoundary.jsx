@@ -77,6 +77,37 @@ export class ErrorBoundary extends React.Component {
             </Paper>
           )}
           
+          {/* Afficher l'erreur aussi en production */}
+          {process.env.NODE_ENV !== 'development' && (
+            <Paper 
+              sx={{ 
+                p: 2, 
+                backgroundColor: '#fff3e0',
+                fontFamily: 'monospace',
+                fontSize: '0.75rem',
+                overflow: 'auto',
+                maxHeight: '300px',
+                wordBreak: 'break-word'
+              }}
+            >
+              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', display: 'block' }}>
+                <strong>Erreur:</strong> {this.state.error?.message}
+              </Typography>
+              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', display: 'block', mt: 1 }}>
+                <strong>Stack:</strong>
+              </Typography>
+              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', display: 'block' }}>
+                {this.state.error?.toString()}
+              </Typography>
+              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', display: 'block', mt: 1 }}>
+                <strong>Composant:</strong>
+              </Typography>
+              <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', display: 'block', fontSize: '0.65rem' }}>
+                {this.state.errorInfo?.componentStack}
+              </Typography>
+            </Paper>
+          )}
+          
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button 
               variant="contained" 

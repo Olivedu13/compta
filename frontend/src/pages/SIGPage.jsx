@@ -91,16 +91,33 @@ export default function SIGPage() {
         setLoading(true);
         setError(null);
 
+        console.log('📊 SIGPage fetching data for exercice:', exercice);
         const [sigResponse, cashflowResponse] = await Promise.all([
           apiService.getSIGDetail(exercice),
           apiService.getCashflow({ exercice, periode: 'mois' })
         ]);
 
-        setSig(sigResponse.data.data);
-        setCashflow(cashflowResponse.data.data);
+        console.log('✅ SIG Response:', sigResponse);
+        console.log('✅ Cashflow Response:', cashflowResponse);
+        
+        const sig = sigResponse?.data?.data;
+        const cashflow = cashflowResponse?.data?.data;
+        
+        if (!sig) {
+          throw new Error('SIG data is missing from response');
+        }
+        if (!cashflow) {
+          throw new Error('Cashflow data is missing from response');
+        }
+
+        setSig(sig);
+        setCashflow(cashflow);
+        
+        console.log('✅ SIGPage data set successfully');
       } catch (err) {
-        console.error('Erreur chargement données:', err);
-        setError('Erreur lors du chargement des données');
+        console.error('❌ Erreur chargement données:', err);
+        console.error('❌ Error message:', err.message);
+        setError('Erreur lors du chargement des données: ' + err.message);
       } finally {
         setLoading(false);
       }
