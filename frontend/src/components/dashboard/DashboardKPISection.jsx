@@ -7,6 +7,11 @@ import { Grid, Typography } from '@mui/material';
 import KPICard from '../KPICard';
 
 const DashboardKPISection = ({ kpis = {} }) => {
+  // Fallback pour les champs manquants (en cas de réponse API incomplète)
+  const stock = kpis?.stock || { or: 0 };
+  const tresorerie = kpis?.tresorerie || { banque: 0, caisse: 0 };
+  const tiers = kpis?.tiers || { clients: 0, fournisseurs: 0 };
+  
   return (
     <>
       {/* Stocks */}
@@ -17,14 +22,14 @@ const DashboardKPISection = ({ kpis = {} }) => {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Stock Or"
-            value={kpis?.stock?.or || 0}
+            value={stock?.or || 0}
             color="secondary"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Total Stock"
-            value={kpis?.stock?.or || 0}
+            value={stock?.or || 0}
           />
         </Grid>
       </Grid>
@@ -37,26 +42,26 @@ const DashboardKPISection = ({ kpis = {} }) => {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Banque"
-            value={kpis?.tresorerie?.banque || 0}
+            value={tresorerie?.banque || 0}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Caisse"
-            value={kpis?.tresorerie?.caisse || 0}
+            value={tresorerie?.caisse || 0}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Clients"
-            value={kpis?.tiers?.clients || 0}
+            value={tiers?.clients || 0}
             trend={5}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Fournisseurs"
-            value={kpis?.tiers?.fournisseurs || 0}
+            value={tiers?.fournisseurs || 0}
           />
         </Grid>
       </Grid>
