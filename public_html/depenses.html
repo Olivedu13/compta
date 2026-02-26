@@ -275,6 +275,29 @@
                         <span id="detailPagInfo" class="text-[10px] text-slate-400 font-bold"></span>
                         <div id="detailPagBtns" class="flex gap-1"></div>
                     </div>
+                    <!-- Contreparties (ex: détail par salarié pour classe 64) -->
+                    <div id="counterpartSection" class="hidden mt-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 id="counterpartTitle" class="font-black text-slate-900 text-xs"><i class="fas fa-users mr-1.5 text-green-500"></i>Détail par salarié</h3>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                                <input id="counterpartSearch" type="text" placeholder="Rechercher un nom…" class="bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[11px] font-bold outline-none focus:border-blue-500 w-56">
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-left">
+                                <thead><tr class="bg-green-50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                                    <th class="px-3 py-2">Date</th><th class="px-3 py-2">Compte</th><th class="px-3 py-2">Nom</th><th class="px-3 py-2">Libellé</th><th class="px-3 py-2 text-right">Montant</th>
+                                </tr></thead>
+                                <tbody id="counterpartBody"></tbody>
+                                <tfoot><tr class="bg-green-50 border-t-2 border-green-300"><td colspan="4" class="px-3 py-2 text-[11px] font-black text-green-700">TOTAL</td><td id="counterpartTotal" class="px-3 py-2 text-right text-[11px] font-black text-green-700"></td></tr></tfoot>
+                            </table>
+                        </div>
+                        <div id="counterpartPagination" class="flex items-center justify-between mt-3">
+                            <span id="counterpartPagInfo" class="text-[10px] text-slate-400 font-bold"></span>
+                            <div id="counterpartPagBtns" class="flex gap-1"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -522,8 +545,14 @@
 
     // ── Show category detail: modal with filtered lines ──
     let detailState = { code: '', label: '', page: 1, search: '', sort: 'montant', order: 'desc', sousCompte: '' };
+    let counterpartState = { page: 1, search: '' };
+    let counterpartSearchTimeout = null;
     let detailSearchTimeout = null;
     const CAT_LABELS = { '60':'Achats (matières, marchandises)','61':'Services extérieurs','62':'Autres services extérieurs','63':'Impôts, taxes et versements','64':'Charges de personnel','65':'Autres charges de gestion','66':'Charges financières','67':'Charges exceptionnelles','68':'Dotations amort./provisions' };
+    // Mapping classe 6 → contreparties (classe 4)
+    const COUNTERPART_MAP = {
+        '64': { compte: '421', title: 'Détail par salarié', icon: 'fa-users', color: 'green' },
+    };
 
     function showCategoryDetail(code) {
         detailState.code = String(code);
@@ -533,11 +562,14 @@
         detailState.sousCompte = '';
         detailState.sort = 'montant';
         detailState.order = 'desc';
+        counterpartState = { page: 1, search: '' };
         document.getElementById('detailTitle').innerHTML = `<i class="fas fa-search-plus mr-1.5 text-blue-500"></i>Détail : ${detailState.label}`;
         document.getElementById('detailSubtitle').textContent = `Classe ${code} · Exercice ${document.getElementById('yearSelect').value}`;
         document.getElementById('detailSearch').value = '';
         document.getElementById('detailSort').value = 'montant-desc';
         document.getElementById('detailSousCompte').innerHTML = '<option value="">Tous sous-comptes</option>';
+        document.getElementById('counterpartSection').classList.add('hidden');
+        document.getElementById('counterpartSearch').value = '';
         document.getElementById('detailLoading').classList.remove('hidden');
         document.getElementById('detailContent').classList.add('hidden');
         document.getElementById('detailModal').classList.remove('hidden');
@@ -573,6 +605,14 @@
                 detailState.page = 1;
                 loadDetailPage();
             });
+            document.getElementById('counterpartSearch').addEventListener('input', e => {
+                clearTimeout(counterpartSearchTimeout);
+                counterpartSearchTimeout = setTimeout(() => {
+                    counterpartState.search = e.target.value;
+                    counterpartState.page = 1;
+                    loadCounterparts();
+                }, 300);
+            });
         });
     })();
 
@@ -603,6 +643,10 @@
                 }
             }
             renderDetailModal(json.data, json.data.source || 'ecritures');
+            // Load counterpart accounts if applicable
+            const cp = COUNTERPART_MAP[detailState.code];
+            if (cp) loadCounterparts();
+            else document.getElementById('counterpartSection').classList.add('hidden');
         } catch (e) {
             document.getElementById('detailLoading').classList.add('hidden');
             document.getElementById('detailContent').classList.remove('hidden');
@@ -667,6 +711,69 @@
                 btn.className = `px-2 py-1 rounded-lg border text-[11px] font-bold transition-colors ${active ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`;
                 btn.textContent = label;
                 btn.addEventListener('click', () => { detailState.page = p; loadDetailPage(); });
+                btns.appendChild(btn);
+            };
+            if (page > 1) addBtn('‹', page - 1);
+            for (let i = Math.max(1, page-2); i <= Math.min(total_pages, page+2); i++) addBtn(String(i), i, i === page);
+            if (page < total_pages) addBtn('›', page + 1);
+        }
+    }
+
+    // ── Counterpart accounts (ex: 421 salariés pour classe 64) ──
+    async function loadCounterparts() {
+        const cp = COUNTERPART_MAP[detailState.code];
+        if (!cp) return;
+        const year = document.getElementById('yearSelect').value;
+        const params = new URLSearchParams({
+            exercice: year, page: counterpartState.page, per_page: 200,
+            compte: cp.compte, sort: 'credit', order: 'desc', any_class: 1
+        });
+        if (counterpartState.search) params.set('search', counterpartState.search);
+        try {
+            const resp = await fetch(`${API}/expenses/lines.php?${params}`);
+            const json = await resp.json();
+            if (!json.success || !json.data.lines.length) {
+                document.getElementById('counterpartSection').classList.add('hidden');
+                return;
+            }
+            renderCounterparts(json.data, cp);
+        } catch (e) {
+            document.getElementById('counterpartSection').classList.add('hidden');
+        }
+    }
+
+    function renderCounterparts(data, cp) {
+        const { lines, pagination, totals } = data;
+        document.getElementById('counterpartSection').classList.remove('hidden');
+        document.getElementById('counterpartTitle').innerHTML = `<i class="fas ${cp.icon} mr-1.5 text-${cp.color}-500"></i>${cp.title}`;
+
+        document.getElementById('counterpartBody').innerHTML = lines.map(l => {
+            const nom = l.aux_lib || l.libelle || l.compte_lib || '—';
+            const montant = l.credit > 0 ? l.credit : l.debit;
+            return `
+            <tr class="border-b border-slate-50 hover:bg-green-50/40 transition-colors">
+                <td class="px-3 py-2 text-[11px] text-slate-600 whitespace-nowrap">${dateFR(l.date)}</td>
+                <td class="px-3 py-2 text-[11px] font-mono font-bold text-green-600 whitespace-nowrap">${l.compte}</td>
+                <td class="px-3 py-2 text-[11px] font-bold text-slate-800">${nom}</td>
+                <td class="px-3 py-2 text-[11px] text-slate-500 truncate max-w-[200px]">${l.libelle || '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-black text-green-700 whitespace-nowrap">${EUR(montant)}</td>
+            </tr>`;
+        }).join('');
+
+        const totalMontant = lines.reduce((s, l) => s + (l.credit > 0 ? l.credit : l.debit), 0);
+        document.getElementById('counterpartTotal').textContent = EUR(totalMontant);
+
+        // Pagination
+        const { page, total_pages, total } = pagination;
+        document.getElementById('counterpartPagInfo').textContent = `Page ${page}/${total_pages} · ${total} lignes`;
+        const btns = document.getElementById('counterpartPagBtns');
+        btns.innerHTML = '';
+        if (total_pages > 1) {
+            const addBtn = (label, p, active = false) => {
+                const btn = document.createElement('button');
+                btn.className = `px-2 py-1 rounded-lg border text-[11px] font-bold transition-colors ${active ? 'bg-green-600 text-white border-green-600' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`;
+                btn.textContent = label;
+                btn.addEventListener('click', () => { counterpartState.page = p; loadCounterparts(); });
                 btns.appendChild(btn);
             };
             if (page > 1) addBtn('‹', page - 1);

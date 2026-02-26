@@ -179,7 +179,13 @@ try {
     // =============================================
     // MODE ECRITURES: full detail from ecritures table
     // =============================================
-    $where = "WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'";
+    // any_class=1: bypass class 6 filter (for counterpart accounts like 421)
+    $anyClass = !empty($_GET['any_class']);
+    if ($anyClass) {
+        $where = "WHERE exercice = ?";
+    } else {
+        $where = "WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'";
+    }
     $params = [$exercice];
     
     if ($compteFilter) {
@@ -193,7 +199,8 @@ try {
     }
     
     if ($searchFilter) {
-        $where .= " AND (libelle_ecriture LIKE ? OR compte_lib LIKE ? OR piece_ref LIKE ?)";
+        $where .= " AND (libelle_ecriture LIKE ? OR compte_lib LIKE ? OR piece_ref LIKE ? OR lib_tiers LIKE ?)";
+        $params[] = '%' . $searchFilter . '%';
         $params[] = '%' . $searchFilter . '%';
         $params[] = '%' . $searchFilter . '%';
         $params[] = '%' . $searchFilter . '%';
@@ -260,23 +267,26 @@ try {
     }
     
     // Get available journals for filter
+    $classFilter = $anyClass ? '' : "AND SUBSTR(compte_num, 1, 1) = '6'";
     $jStmt = $db->prepare("
         SELECT DISTINCT journal_code, journal_lib
         FROM ecritures
-        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
+        WHERE exercice = ? $classFilter
         ORDER BY journal_code
     ");
     $jStmt->execute([$exercice]);
     $journals = $jStmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get available account prefixes for filter
+    $prefixLen = $compteFilter ? max(strlen($compteFilter) + 1, 3) : 2;
+    $prefixFilter = $anyClass ? ($compteFilter ? "AND compte_num LIKE '" . substr($compteFilter, 0, 3) . "%'" : '') : "AND SUBSTR(compte_num, 1, 1) = '6'";
     $aStmt = $db->prepare("
-        SELECT DISTINCT SUBSTR(compte_num, 1, 2) as prefix, 
+        SELECT DISTINCT SUBSTR(compte_num, 1, $prefixLen) as prefix, 
                MIN(compte_lib) as label,
                COUNT(*) as nb
         FROM ecritures
-        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
-        GROUP BY SUBSTR(compte_num, 1, 2)
+        WHERE exercice = ? $prefixFilter
+        GROUP BY SUBSTR(compte_num, 1, $prefixLen)
         ORDER BY prefix
     ");
     $aStmt->execute([$exercice]);
