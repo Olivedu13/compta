@@ -84,11 +84,15 @@ put /workspaces/compta/public_html/api/v1/balance/simple.php api/v1/balance/simp
 put /workspaces/compta/public_html/api/v1/kpis/detailed.php api/v1/kpis/detailed.php
 put /workspaces/compta/public_html/api/v1/kpis/financial.php api/v1/kpis/financial.php
 put /workspaces/compta/public_html/api/v1/expenses/deep-dive.php api/v1/expenses/deep-dive.php
+put /workspaces/compta/public_html/api/v1/expenses/lines.php api/v1/expenses/lines.php
+put /workspaces/compta/public_html/api/v1/expenses/bank-fees.php api/v1/expenses/bank-fees.php
 put /workspaces/compta/public_html/api/v1/ai/analysis.php api/v1/ai/analysis.php
 put /workspaces/compta/public_html/api/v1/analytics/advanced.php api/v1/analytics/advanced.php
 put /workspaces/compta/public_html/api/v1/analytics/analysis.php api/v1/analytics/analysis.php
 put /workspaces/compta/public_html/api/v1/analytics/kpis.php api/v1/analytics/kpis.php
 put /workspaces/compta/public_html/api/v1/years/list.php api/v1/years/list.php
+-mkdir api/v1/fec
+put /workspaces/compta/public_html/api/v1/fec/upload.php api/v1/fec/upload.php
 
 # ═══════════════════════════════════════
 # API Auth
@@ -122,6 +126,11 @@ put /workspaces/compta/backend/validators/FECValidator.php backend/validators/FE
 # ═══════════════════════════════════════
 put /workspaces/compta/public_html/assets/index.js assets/index.js
 put /workspaces/compta/public_html/assets/responsive.css assets/responsive.css
+
+# ═══════════════════════════════════════
+# Pages standalone
+# ═══════════════════════════════════════
+put /workspaces/compta/public_html/depenses.html depenses.html
 
 # ═══════════════════════════════════════
 # Base de données (NE PAS écraser le serveur)

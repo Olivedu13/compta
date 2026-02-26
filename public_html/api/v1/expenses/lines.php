@@ -112,8 +112,10 @@ try {
         
         // Apply filters
         if ($compteFilter) {
-            $allLines = array_values(array_filter($allLines, function($l) use ($compteFilter) {
-                return strpos($l['compte'], $compteFilter) === 0;
+            $comptes = array_filter(array_map('trim', explode(',', $compteFilter)));
+            $allLines = array_values(array_filter($allLines, function($l) use ($comptes) {
+                foreach ($comptes as $c) { if (strpos($l['compte'], $c) === 0) return true; }
+                return false;
             }));
         }
         if ($searchFilter) {
@@ -189,8 +191,16 @@ try {
     $params = [$exercice];
     
     if ($compteFilter) {
-        $where .= " AND compte_num LIKE ?";
-        $params[] = $compteFilter . '%';
+        // Support comma-separated account prefixes (e.g. 627,661,665)
+        $comptes = array_filter(array_map('trim', explode(',', $compteFilter)));
+        if (count($comptes) === 1) {
+            $where .= " AND compte_num LIKE ?";
+            $params[] = $comptes[0] . '%';
+        } elseif (count($comptes) > 1) {
+            $clauses = [];
+            foreach ($comptes as $c) { $clauses[] = "compte_num LIKE ?"; $params[] = $c . '%'; }
+            $where .= " AND (" . implode(' OR ', $clauses) . ")";
+        }
     }
     
     if ($journalFilter) {
@@ -278,8 +288,20 @@ try {
     $journals = $jStmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get available account prefixes for filter
-    $prefixLen = $compteFilter ? max(strlen($compteFilter) + 1, 3) : 2;
-    $prefixFilter = $anyClass ? ($compteFilter ? "AND compte_num LIKE '" . substr($compteFilter, 0, 3) . "%'" : '') : "AND SUBSTR(compte_num, 1, 1) = '6'";
+    if ($compteFilter && strpos($compteFilter, ',') !== false) {
+        // Multi-prefix: show full account numbers (8 digits) for sub-account filter
+        $comptes = array_filter(array_map('trim', explode(',', $compteFilter)));
+        $likeClauses = [];
+        foreach ($comptes as $c) { $likeClauses[] = "compte_num LIKE '" . SQLite3::escapeString($c) . "%'"; }
+        $prefixFilter = "AND (" . implode(' OR ', $likeClauses) . ")";
+        $prefixLen = 8;
+    } elseif ($compteFilter) {
+        $prefixLen = max(strlen($compteFilter) + 1, 3);
+        $prefixFilter = $anyClass ? "AND compte_num LIKE '" . substr($compteFilter, 0, 3) . "%'" : "AND SUBSTR(compte_num, 1, 1) = '6'";
+    } else {
+        $prefixLen = 2;
+        $prefixFilter = $anyClass ? '' : "AND SUBSTR(compte_num, 1, 1) = '6'";
+    }
     $aStmt = $db->prepare("
         SELECT DISTINCT SUBSTR(compte_num, 1, $prefixLen) as prefix, 
                MIN(compte_lib) as label,

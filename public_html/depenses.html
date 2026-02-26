@@ -133,6 +133,34 @@
                 </div>
             </section>
 
+            <!-- FRAIS BANCAIRES -->
+            <section id="bankFeesSection" class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
+                <div class="p-4 border-b border-slate-100 bg-orange-50/50 flex items-center justify-between">
+                    <div>
+                        <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs"><i class="fas fa-university mr-1.5 text-orange-500"></i>Frais Bancaires</h2>
+                        <p id="bankFeesSubtitle" class="text-[10px] text-slate-400 font-bold mt-0.5"></p>
+                    </div>
+                    <button onclick="showBankFeesDetail()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold transition-colors"><i class="fas fa-search-plus mr-1"></i>Détail complet</button>
+                </div>
+                <div class="p-4">
+                    <div id="bankFeesKPI" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Répartition par type</h3>
+                            <div id="bankFeesPie" class="flex items-center gap-4 justify-center" style="min-height:200px"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Par banque / journal</h3>
+                            <div id="bankFeesBar" class="space-y-2"></div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Évolution mensuelle des frais bancaires</h3>
+                        <div id="bankFeesMonthly" class="h-[160px] w-full"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- ═══════════════════════════════════════ -->
             <!-- DÉTAIL COMPLET — TOUTES LES LIGNES     -->
             <!-- ═══════════════════════════════════════ -->
@@ -265,7 +293,7 @@
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
                         <table class="w-full text-left">
                             <thead><tr class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                                <th class="px-3 py-2">Date</th><th class="px-3 py-2">Journal</th><th class="px-3 py-2">Compte</th><th class="px-3 py-2">Libellé</th><th class="px-3 py-2">Pièce</th><th class="px-3 py-2 text-right">Débit</th><th class="px-3 py-2 text-right">Crédit</th><th class="px-3 py-2 text-right">Montant</th>
+                                <th class="px-3 py-2 cursor-pointer hover:text-blue-500" onclick="detailSortBy('date')">Date <i id="dsort-date" class="fas fa-sort ml-0.5 text-slate-300"></i></th><th class="px-3 py-2">Journal</th><th class="px-3 py-2 cursor-pointer hover:text-blue-500" onclick="detailSortBy('compte')">Compte <i id="dsort-compte" class="fas fa-sort ml-0.5 text-slate-300"></i></th><th class="px-3 py-2 cursor-pointer hover:text-blue-500" onclick="detailSortBy('libelle')">Libellé <i id="dsort-libelle" class="fas fa-sort ml-0.5 text-slate-300"></i></th><th class="px-3 py-2">Pièce</th><th class="px-3 py-2 text-right cursor-pointer hover:text-blue-500" onclick="detailSortBy('debit')">Débit <i id="dsort-debit" class="fas fa-sort ml-0.5 text-slate-300"></i></th><th class="px-3 py-2 text-right cursor-pointer hover:text-blue-500" onclick="detailSortBy('credit')">Crédit <i id="dsort-credit" class="fas fa-sort ml-0.5 text-slate-300"></i></th><th class="px-3 py-2 text-right cursor-pointer hover:text-blue-500" onclick="detailSortBy('montant')">Montant <i id="dsort-montant" class="fas fa-sort ml-0.5 text-slate-300"></i></th>
                             </tr></thead>
                             <tbody id="detailBody"></tbody>
                             <tfoot><tr class="bg-slate-50 border-t-2 border-slate-300"><td colspan="5" class="px-3 py-2 text-[11px] font-black text-slate-700">TOTAL</td><td id="detailTotalDebit" class="px-3 py-2 text-right text-[11px] font-black"></td><td id="detailTotalCredit" class="px-3 py-2 text-right text-[11px] font-black"></td><td id="detailTotalMontant" class="px-3 py-2 text-right text-[11px] font-black"></td></tr></tfoot>
@@ -465,6 +493,7 @@
             renderMonthly();
             renderFournisseurs();
             renderAlerts();
+            loadBankFees();
             await loadLines();
         } catch (e) {
             console.error('Erreur:', e);
@@ -583,6 +612,10 @@
     }
 
     // Wire up detail modal filters
+    function currentDetailLoader() {
+        return detailState.code.includes(',') ? loadBankFeesDetail : loadDetailPage;
+    }
+
     (function initDetailFilters() {
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('detailSearch').addEventListener('input', e => {
@@ -590,7 +623,7 @@
                 detailSearchTimeout = setTimeout(() => {
                     detailState.search = e.target.value;
                     detailState.page = 1;
-                    loadDetailPage();
+                    currentDetailLoader()();
                 }, 300);
             });
             document.getElementById('detailSort').addEventListener('change', e => {
@@ -598,12 +631,12 @@
                 detailState.sort = s;
                 detailState.order = o;
                 detailState.page = 1;
-                loadDetailPage();
+                currentDetailLoader()();
             });
             document.getElementById('detailSousCompte').addEventListener('change', e => {
                 detailState.sousCompte = e.target.value;
                 detailState.page = 1;
-                loadDetailPage();
+                currentDetailLoader()();
             });
             document.getElementById('counterpartSearch').addEventListener('input', e => {
                 clearTimeout(counterpartSearchTimeout);
@@ -654,6 +687,33 @@
         }
     }
 
+    function detailSortBy(field) {
+        if (detailState.sort === field) {
+            detailState.order = detailState.order === 'desc' ? 'asc' : 'desc';
+        } else {
+            detailState.sort = field;
+            detailState.order = 'desc';
+        }
+        detailState.page = 1;
+        // Update sort dropdown to match
+        const key = `${detailState.sort}-${detailState.order}`;
+        const sel = document.getElementById('detailSort');
+        for (const opt of sel.options) { if (opt.value === key) { sel.value = key; break; } }
+        currentDetailLoader()();
+    }
+
+    function updateDetailSortIcons() {
+        ['date','compte','libelle','debit','credit','montant'].forEach(f => {
+            const icon = document.getElementById('dsort-' + f);
+            if (!icon) return;
+            if (detailState.sort === f) {
+                icon.className = detailState.order === 'asc' ? 'fas fa-sort-up ml-0.5 text-blue-500' : 'fas fa-sort-down ml-0.5 text-blue-500';
+            } else {
+                icon.className = 'fas fa-sort ml-0.5 text-slate-300';
+            }
+        });
+    }
+
     function renderDetailModal(data, source) {
         const { lines, pagination, totals } = data;
         document.getElementById('detailLoading').classList.add('hidden');
@@ -667,6 +727,8 @@
         } else {
             noteEl.classList.add('hidden');
         }
+
+        updateDetailSortIcons();
 
         // Stats
         document.getElementById('detailStats').innerHTML = `
@@ -688,8 +750,8 @@
             <tr class="border-b border-slate-50 hover:bg-blue-50/40 transition-colors">
                 <td class="px-3 py-2 text-[11px] text-slate-600 whitespace-nowrap">${dateFR(l.date)}</td>
                 <td class="px-3 py-2"><span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${l.journal}</span></td>
-                <td class="px-3 py-2 text-[11px] font-mono font-bold text-blue-600 whitespace-nowrap">${l.compte}</td>
-                <td class="px-3 py-2 text-[11px] text-slate-700 truncate max-w-[250px]" title="${(l.libelle||'').replace(/"/g,'&quot;')}">${l.libelle || l.compte_lib || '—'}</td>
+                <td class="px-3 py-2"><span class="text-[11px] font-mono font-bold text-blue-600">${l.compte}</span><br><span class="text-[9px] text-slate-400">${l.compte_lib || ''}</span></td>
+                <td class="px-3 py-2 text-[11px] text-slate-700 truncate max-w-[250px]" title="${(l.libelle||'').replace(/"/g,'&quot;')}">${l.libelle || '—'}</td>
                 <td class="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">${l.piece || '—'}</td>
                 <td class="px-3 py-2 text-right text-[11px] font-bold ${l.debit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.debit > 0 ? EUR(l.debit) : '—'}</td>
                 <td class="px-3 py-2 text-right text-[11px] font-bold ${l.credit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.credit > 0 ? EUR(l.credit) : '—'}</td>
@@ -710,7 +772,7 @@
                 const btn = document.createElement('button');
                 btn.className = `px-2 py-1 rounded-lg border text-[11px] font-bold transition-colors ${active ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`;
                 btn.textContent = label;
-                btn.addEventListener('click', () => { detailState.page = p; loadDetailPage(); });
+                btn.addEventListener('click', () => { detailState.page = p; currentDetailLoader()(); });
                 btns.appendChild(btn);
             };
             if (page > 1) addBtn('‹', page - 1);
@@ -1203,6 +1265,191 @@
                     <p class="text-sm font-bold text-red-700">Erreur d'import</p>
                     <p class="text-[11px] text-red-500 mt-1">${err.message}</p>
                 </div>`;
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // FRAIS BANCAIRES
+    // ═══════════════════════════════════════
+    const BANK_COLORS = ['#f97316','#ef4444','#8b5cf6','#06b6d4','#ec4899','#10b981'];
+    let bankFeesData = null;
+
+    async function loadBankFees() {
+        const year = document.getElementById('yearSelect').value;
+        try {
+            const resp = await fetch(`${API}/expenses/bank-fees.php?exercice=${year}`);
+            const json = await resp.json();
+            if (json.success && json.data && json.data.total > 0) {
+                bankFeesData = json.data;
+                renderBankFees(json.data);
+                document.getElementById('bankFeesSection').classList.remove('hidden');
+            } else {
+                document.getElementById('bankFeesSection').classList.add('hidden');
+            }
+        } catch (e) {
+            console.error('Erreur frais bancaires:', e);
+            document.getElementById('bankFeesSection').classList.add('hidden');
+        }
+    }
+
+    function renderBankFees(data) {
+        // Subtitle
+        document.getElementById('bankFeesSubtitle').textContent = `${data.nb_ecritures} écritures · Exercice ${document.getElementById('yearSelect').value}`;
+
+        // KPI cards
+        const mensuel = data.cout_moyen_mensuel || (data.total / 12);
+        document.getElementById('bankFeesKPI').innerHTML = `
+            <div class="bg-orange-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-orange-700">${EUR0(data.total)}</p>
+                <p class="text-[9px] font-bold text-orange-400 uppercase">Total frais bancaires</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-slate-700">${data.nb_ecritures}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Écritures</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-slate-700">${EUR0(mensuel)}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Coût moyen/mois</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-slate-700">${(data.par_type || []).length}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Types de frais</p>
+            </div>`;
+
+        // Pie chart (SVG donut)
+        renderBankPieChart(data.par_type || []);
+
+        // Bar chart by bank
+        renderBankBarChart(data.par_banque || []);
+
+        // Monthly
+        renderBankMonthly(data.par_mois || []);
+    }
+
+    function renderBankPieChart(types) {
+        const container = document.getElementById('bankFeesPie');
+        if (!types.length) { container.innerHTML = '<p class="text-xs text-slate-400">Aucune donnée</p>'; return; }
+
+        const total = types.reduce((s, t) => s + t.montant, 0);
+        const size = 160, cx = size/2, cy = size/2, r = 60, r2 = 40;
+        let angle = -Math.PI / 2;
+
+        const paths = types.map((t, i) => {
+            const pct = t.montant / total;
+            const a1 = angle;
+            const a2 = angle + pct * 2 * Math.PI;
+            angle = a2;
+            const large = pct > 0.5 ? 1 : 0;
+            const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+            const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+            const x3 = cx + r2 * Math.cos(a2), y3 = cy + r2 * Math.sin(a2);
+            const x4 = cx + r2 * Math.cos(a1), y4 = cy + r2 * Math.sin(a1);
+            return `<path d="M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${x3},${y3} A${r2},${r2} 0 ${large} 0 ${x4},${y4}Z" fill="${BANK_COLORS[i % BANK_COLORS.length]}" opacity="0.85"><title>${t.label}: ${EUR(t.montant)} (${(pct*100).toFixed(1)}%)</title></path>`;
+        }).join('');
+
+        const svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="11" font-weight="900" fill="#1e293b">${EUR0(total)}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="7" font-weight="700" fill="#94a3b8">TOTAL</text></svg>`;
+
+        const legend = types.map((t, i) => {
+            const pct = (t.montant / total * 100).toFixed(1);
+            return `<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${BANK_COLORS[i % BANK_COLORS.length]}"></span><span class="text-[10px] font-bold text-slate-700 truncate">${t.label}</span><span class="text-[9px] text-slate-400 ml-auto whitespace-nowrap">${EUR0(t.montant)} · ${pct}%</span></div>`;
+        }).join('');
+
+        container.innerHTML = `<div>${svg}</div><div class="space-y-1.5 flex-1 min-w-[140px]">${legend}</div>`;
+    }
+
+    function renderBankBarChart(banques) {
+        const container = document.getElementById('bankFeesBar');
+        if (!banques.length) { container.innerHTML = '<p class="text-xs text-slate-400">Aucune donnée</p>'; return; }
+        const max = Math.max(...banques.map(b => b.montant), 1);
+        container.innerHTML = banques.map((b, i) => `
+            <div class="flex items-center gap-2">
+                <div class="w-16 shrink-0"><span class="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">${b.journal || '?'}</span></div>
+                <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bar-animate" style="width:${(b.montant/max*100).toFixed(1)}%;background:${BANK_COLORS[i % BANK_COLORS.length]}"></div></div>
+                <span class="text-[10px] font-black text-slate-700 w-16 text-right shrink-0">${EUR0(b.montant)}</span>
+                <span class="text-[9px] text-slate-400 w-8 text-right shrink-0">${b.nb}éc.</span>
+            </div>`).join('');
+    }
+
+    function renderBankMonthly(mois) {
+        const container = document.getElementById('bankFeesMonthly');
+        if (!mois.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">Aucune donnée</p>'; return; }
+        const year = document.getElementById('yearSelect').value;
+        const data = Array.from({ length: 12 }, (_, i) => {
+            const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+            return { month: MONTHS_FR[i], value: mois.find(m => m.mois === key)?.montant || 0 };
+        });
+        const maxV = Math.max(...data.map(d => d.value), 1);
+        container.innerHTML = `
+            <div class="flex items-end justify-between gap-1 h-full px-1" style="min-height:130px">
+                ${data.map(d => {
+                    const h = (d.value / maxV * 110);
+                    return `<div class="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
+                        ${d.value > 0 ? `<span class="text-[7px] font-bold text-slate-400">${EUR0(d.value)}</span>` : ''}
+                        <div class="flex items-end gap-px w-full justify-center" style="height:120px">
+                            <div class="bg-orange-400 rounded-t w-2/3" style="height:${h}px"></div>
+                        </div>
+                        <span class="text-[8px] font-bold text-slate-400">${d.month}</span>
+                    </div>`;
+                }).join('')}
+            </div>`;
+    }
+
+    function showBankFeesDetail() {
+        // Open the detail modal with all bank fee account prefixes
+        const bankAccounts = '627,661,665,666,668';
+        detailState.code = bankAccounts;
+        detailState.label = 'Frais bancaires';
+        detailState.page = 1;
+        detailState.search = '';
+        detailState.sousCompte = '';
+        detailState.sort = 'montant';
+        detailState.order = 'desc';
+        counterpartState = { page: 1, search: '' };
+        document.getElementById('detailTitle').innerHTML = '<i class="fas fa-university mr-1.5 text-orange-500"></i>Détail : Frais Bancaires';
+        document.getElementById('detailSubtitle').textContent = `Comptes 627, 661, 665, 666, 668 · Exercice ${document.getElementById('yearSelect').value}`;
+        document.getElementById('detailSearch').value = '';
+        document.getElementById('detailSort').value = 'montant-desc';
+        document.getElementById('detailSousCompte').innerHTML = '<option value="">Tous sous-comptes</option>';
+        document.getElementById('counterpartSection').classList.add('hidden');
+        document.getElementById('counterpartSearch').value = '';
+        document.getElementById('detailLoading').classList.remove('hidden');
+        document.getElementById('detailContent').classList.add('hidden');
+        document.getElementById('detailModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        loadBankFeesDetail(true);
+    }
+
+    async function loadBankFeesDetail(loadSousComptes = false) {
+        const year = document.getElementById('yearSelect').value;
+        const compteFilter = detailState.sousCompte || detailState.code;
+        const params = new URLSearchParams({
+            exercice: year, page: detailState.page, per_page: 200,
+            compte: compteFilter, sort: detailState.sort, order: detailState.order, any_class: 1
+        });
+        if (detailState.search) params.set('search', detailState.search);
+        try {
+            const resp = await fetch(`${API}/expenses/lines.php?${params}`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error);
+            if (loadSousComptes && json.data.filters?.account_prefixes) {
+                const sel = document.getElementById('detailSousCompte');
+                sel.innerHTML = '<option value="">Tous sous-comptes</option>';
+                // Fetch all sub-accounts
+                const allParams = new URLSearchParams({ exercice: year, per_page: 1, compte: detailState.code, any_class: 1 });
+                const allResp = await fetch(`${API}/expenses/lines.php?${allParams}`);
+                const allJson = await allResp.json();
+                if (allJson.success && allJson.data.filters?.account_prefixes) {
+                    allJson.data.filters.account_prefixes.forEach(a => {
+                        sel.add(new Option(`${a.prefix} — ${a.label?.substring(0,30) || ''} (${a.nb})`, a.prefix));
+                    });
+                }
+            }
+            renderDetailModal(json.data, json.data.source || 'ecritures');
+            document.getElementById('counterpartSection').classList.add('hidden');
+        } catch (e) {
+            document.getElementById('detailLoading').classList.add('hidden');
+            document.getElementById('detailContent').classList.remove('hidden');
+            document.getElementById('detailContent').innerHTML = `<div class="text-center py-8 text-red-500 font-bold">${e.message}</div>`;
         }
     }
 
