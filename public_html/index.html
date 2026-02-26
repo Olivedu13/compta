@@ -45,5 +45,15 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
+    <!-- Navigation vers pages supplémentaires -->
+    <div id="nav-extra" style="position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;gap:8px;">
+        <a href="/depenses.html"
+           style="background:#1e293b;color:#fff;padding:10px 16px;border-radius:14px;font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:transform 0.2s,background 0.2s;"
+           onmouseover="this.style.background='#3b82f6';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.background='#1e293b';this.style.transform='translateY(0)'">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Analyse Dépenses
+        </a>
+    </div>
 </body>
 </html>

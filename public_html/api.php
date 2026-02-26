@@ -87,10 +87,12 @@ try {
             $reports[] = ['data_json' => $row['data_json']];
         }
         
+        // Sécurité : ne jamais exposer les clés API en GET
+        // Le frontend les stocke en localStorage, pas besoin de les renvoyer
         echo json_encode([
             'settings' => [
-                'api_key_gemini' => $settings['api_key_gemini'] ?? '',
-                'api_key_copilot' => $settings['api_key_copilot'] ?? ''
+                'api_key_gemini' => '',
+                'api_key_copilot' => ''
             ],
             'reports' => $reports
         ]);
