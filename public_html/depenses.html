@@ -20,32 +20,31 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .bar-animate { animation: growBar 0.6s ease-out; transform-origin: left; }
         @keyframes growBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-        .tooltip { position: relative; }
-        .tooltip:hover::after {
-            content: attr(data-tip);
-            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-            background: #1e293b; color: white; padding: 4px 8px; border-radius: 6px;
-            font-size: 11px; white-space: nowrap; z-index: 50;
-        }
+        .sort-btn { cursor: pointer; user-select: none; }
+        .sort-btn:hover { color: #3b82f6; }
+        .sort-btn.active { color: #3b82f6; }
+        tr.line-row:hover { background: #f8fafc; }
+        .page-btn { min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+        .page-btn.active { background: #1e293b; color: white; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
     <!-- HEADER -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-slate-900 px-3 py-1.5 rounded-xl flex items-center justify-center">
+                <a href="/" class="bg-slate-900 px-3 py-1.5 rounded-xl flex items-center justify-center hover:bg-blue-600 transition-colors">
                     <span class="font-black text-white text-sm italic tracking-tighter">ATCO</span>
-                </div>
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Analyse Dépenses</span>
+                </a>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:block">Analyse Dépenses</span>
             </div>
-            <div class="flex items-center gap-2">
-                <select id="yearSelect" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-sm font-bold"></select>
-                <select id="yearCompare" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-sm font-bold">
-                    <option value="">Comparer à…</option>
+            <div class="flex items-center gap-2 flex-wrap">
+                <select id="yearSelect" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:border-blue-500 outline-none"></select>
+                <select id="yearCompare" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:border-blue-500 outline-none">
+                    <option value="">Comparer…</option>
                 </select>
-                <a href="/" class="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 transition-colors">
+                <a href="/" class="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-600 transition-colors">
                     <i class="fas fa-arrow-left mr-1"></i>Dashboard
                 </a>
             </div>
@@ -53,7 +52,7 @@
     </header>
 
     <!-- MAIN -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
 
         <!-- Loading -->
         <div id="loading" class="flex flex-col items-center justify-center py-20">
@@ -61,106 +60,151 @@
             <p class="mt-4 text-sm text-slate-400 font-bold">Chargement des données…</p>
         </div>
 
-        <!-- Contenu (caché par défaut) -->
-        <div id="content" class="hidden space-y-6">
+        <!-- Contenu -->
+        <div id="content" class="hidden space-y-5">
 
-            <!-- SYNTHÈSE -->
+            <!-- SYNTHÈSE KPI -->
             <section class="fade-in">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Charges</p>
                         <p id="totalCharges" class="text-xl font-black text-slate-900 tracking-tight">—</p>
-                        <p id="totalChargesVar" class="text-xs font-bold mt-1 hidden"></p>
+                        <p id="totalChargesVar" class="text-[10px] font-bold mt-0.5 hidden"></p>
                     </div>
                     <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Charges Fixes</p>
                         <p id="chargesFixes" class="text-xl font-black text-blue-600 tracking-tight">—</p>
-                        <p id="pctFixes" class="text-xs text-slate-400 font-bold"></p>
+                        <p id="pctFixes" class="text-[10px] text-slate-400 font-bold"></p>
                     </div>
                     <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Charges Variables</p>
                         <p id="chargesVariables" class="text-xl font-black text-amber-600 tracking-tight">—</p>
-                        <p id="pctVariables" class="text-xs text-slate-400 font-bold"></p>
+                        <p id="pctVariables" class="text-[10px] text-slate-400 font-bold"></p>
                     </div>
                     <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Fournisseurs</p>
                         <p id="nbFournisseurs" class="text-xl font-black text-slate-900 tracking-tight">—</p>
-                        <p id="nbAlerts" class="text-xs text-slate-400 font-bold"></p>
+                        <p id="nbAlerts" class="text-[10px] text-slate-400 font-bold"></p>
                     </div>
                 </div>
             </section>
 
             <!-- PAR CATÉGORIE PCG -->
             <section class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
-                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-sm">Répartition par catégorie PCG</h2>
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs">Répartition par catégorie PCG</h2>
                 </div>
-                <div class="p-4 sm:p-6">
-                    <div id="categoriesChart" class="space-y-3"></div>
+                <div class="p-4">
+                    <div id="categoriesChart" class="space-y-2"></div>
                 </div>
             </section>
 
-            <!-- COMPARAISON ANNÉES (caché si pas de comparaison) -->
+            <!-- COMPARAISON -->
             <section id="compareSection" class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-sm">Comparaison année N vs N-1</h2>
-                    <span id="compareYearsLabel" class="text-xs font-bold text-slate-400"></span>
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs">Comparaison N vs N-1</h2>
+                    <span id="compareYearsLabel" class="text-[10px] font-bold text-slate-400"></span>
                 </div>
-                <div class="p-4 sm:p-6">
+                <div class="p-4">
                     <div id="compareChart" class="space-y-3"></div>
                 </div>
             </section>
 
             <!-- ÉVOLUTION MENSUELLE -->
             <section class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
-                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-sm">Évolution mensuelle</h2>
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs">Évolution mensuelle</h2>
                 </div>
-                <div class="p-4 sm:p-6">
-                    <div id="monthlyChart" class="h-[220px] w-full"></div>
-                </div>
-            </section>
-
-            <!-- DÉTAIL PAR COMPTE -->
-            <section class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-sm">Détail par compte</h2>
-                    <input id="searchCompte" type="text" placeholder="Rechercher…"
-                        class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-40 outline-none focus:border-blue-600">
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider">Compte</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider">Libellé</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Montant</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">%</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right hidden sm:table-cell">Écritures</th>
-                                <th id="compteVarHeader" class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right hidden">Var N-1</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comptesBody" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                <div class="p-4">
+                    <div id="monthlyChart" class="h-[200px] w-full"></div>
                 </div>
             </section>
 
             <!-- TOP FOURNISSEURS -->
             <section class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
-                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-sm">Top Fournisseurs</h2>
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs">Top Fournisseurs</h2>
                 </div>
-                <div class="p-4 sm:p-6">
-                    <div id="fournisseursChart" class="space-y-3"></div>
+                <div class="p-4">
+                    <div id="fournisseursChart" class="space-y-2"></div>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- DÉTAIL COMPLET — TOUTES LES LIGNES     -->
+            <!-- ═══════════════════════════════════════ -->
+            <section class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <h2 class="font-black text-slate-900 uppercase tracking-tight text-xs">
+                                <i class="fas fa-list-ul mr-1.5 text-blue-500"></i>Toutes les écritures de charges
+                            </h2>
+                            <p id="linesCount" class="text-[10px] text-slate-400 font-bold mt-0.5"></p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <select id="filterJournal" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-blue-500">
+                                <option value="">Tous journaux</option>
+                            </select>
+                            <select id="filterCompte" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-blue-500">
+                                <option value="">Tous comptes</option>
+                            </select>
+                            <div class="relative">
+                                <input id="searchLines" type="text" placeholder="Rechercher…"
+                                    class="bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1 text-[11px] w-36 outline-none focus:border-blue-500">
+                                <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]"></i>
+                            </div>
+                            <button id="exportCsv" class="bg-slate-900 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold transition-colors">
+                                <i class="fas fa-download mr-1"></i>CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="linesTable">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn" data-sort="date">
+                                    Date <i class="fas fa-sort ml-0.5"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Jrnl</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn" data-sort="compte">
+                                    Compte <i class="fas fa-sort ml-0.5"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider hidden md:table-cell">Lib. compte</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Pièce</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Libellé écriture</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right">Débit</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right">Crédit</th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right sort-btn" data-sort="montant">
+                                    Solde <i class="fas fa-sort ml-0.5"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="linesBody" class="divide-y divide-slate-50"></tbody>
+                        <tfoot>
+                            <tr class="bg-slate-50 border-t-2 border-slate-200">
+                                <td colspan="6" class="px-3 py-2.5 text-[10px] font-black text-slate-600 uppercase">Total filtré</td>
+                                <td id="totalDebit" class="px-3 py-2.5 text-right text-[11px] font-black text-slate-900"></td>
+                                <td id="totalCredit" class="px-3 py-2.5 text-right text-[11px] font-black text-slate-900"></td>
+                                <td id="totalSolde" class="px-3 py-2.5 text-right text-[11px] font-black text-blue-600"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="p-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                    <p id="paginationInfo" class="text-[10px] text-slate-400 font-bold"></p>
+                    <div id="paginationBtns" class="flex gap-1"></div>
                 </div>
             </section>
 
             <!-- ALERTES -->
             <section id="alertsSection" class="fade-in bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 bg-red-50/50">
-                    <h2 class="font-black text-red-600 uppercase tracking-tight text-sm"><i class="fas fa-exclamation-triangle mr-2"></i>Alertes</h2>
+                <div class="p-4 border-b border-slate-100 bg-red-50/50">
+                    <h2 class="font-black text-red-600 uppercase tracking-tight text-xs"><i class="fas fa-exclamation-triangle mr-2"></i>Alertes</h2>
                 </div>
-                <div class="p-4 sm:p-6 space-y-4">
+                <div class="p-4 space-y-3">
                     <div id="alertsContent"></div>
                 </div>
             </section>
@@ -170,39 +214,66 @@
 
     <script>
     // ═══════════════════════════════════════
-    // ANALYSE DÉTAILLÉE DES DÉPENSES
+    // ANALYSE DÉTAILLÉE DES DÉPENSES v2
     // ═══════════════════════════════════════
 
-    const API_BASE = '/api/v1';
-    const EUR = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v || 0);
+    const API = '/api/v1';
+    const EUR = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(v || 0);
+    const EUR0 = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v || 0);
     const PCT = v => (v || 0).toFixed(1) + '%';
     const COLORS = ['#3b82f6','#f59e0b','#ef4444','#10b981','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16'];
     const MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const dateFR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR') : '—';
 
-    let currentData = null;
-    let compareData = null;
+    let currentData = null, compareData = null;
+    let linesState = { sort: 'date', order: 'desc', page: 1, journal: '', compte: '', search: '' };
 
     // ── Init ──
     async function init() {
-        const yearsResp = await fetch(`${API_BASE}/years/list.php`);
+        const yearsResp = await fetch(`${API}/years/list.php`);
         const yearsJson = await yearsResp.json();
         const years = yearsJson.data || [];
 
         const sel = document.getElementById('yearSelect');
         const cmp = document.getElementById('yearCompare');
-        years.forEach(y => {
-            sel.add(new Option(y, y));
-            cmp.add(new Option(y, y));
-        });
+        years.forEach(y => { sel.add(new Option(y, y)); cmp.add(new Option(y, y)); });
         if (years.length > 1) cmp.value = years[1];
 
-        sel.addEventListener('change', () => loadData());
-        cmp.addEventListener('change', () => loadData());
+        sel.addEventListener('change', () => { linesState.page = 1; loadAll(); });
+        cmp.addEventListener('change', () => loadAll());
 
-        await loadData();
+        // Sort buttons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const field = btn.dataset.sort;
+                if (linesState.sort === field) {
+                    linesState.order = linesState.order === 'desc' ? 'asc' : 'desc';
+                } else {
+                    linesState.sort = field;
+                    linesState.order = 'desc';
+                }
+                linesState.page = 1;
+                loadLines();
+            });
+        });
+
+        // Filters
+        document.getElementById('filterJournal').addEventListener('change', e => { linesState.journal = e.target.value; linesState.page = 1; loadLines(); });
+        document.getElementById('filterCompte').addEventListener('change', e => { linesState.compte = e.target.value; linesState.page = 1; loadLines(); });
+        
+        let searchTimeout;
+        document.getElementById('searchLines').addEventListener('input', e => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { linesState.search = e.target.value; linesState.page = 1; loadLines(); }, 300);
+        });
+
+        // Export CSV
+        document.getElementById('exportCsv').addEventListener('click', exportCSV);
+
+        await loadAll();
     }
 
-    async function loadData() {
+    async function loadAll() {
         const year = document.getElementById('yearSelect').value;
         const compareYear = document.getElementById('yearCompare').value;
 
@@ -210,295 +281,287 @@
         document.getElementById('content').classList.add('hidden');
 
         try {
-            const [expResp, sigResp] = await Promise.all([
-                fetch(`${API_BASE}/expenses/deep-dive.php?exercice=${year}`),
-                fetch(`${API_BASE}/sig/simple.php?exercice=${year}`)
-            ]);
+            const expResp = await fetch(`${API}/expenses/deep-dive.php?exercice=${year}`);
             const expJson = await expResp.json();
-            const sigJson = await sigResp.json();
-            currentData = { ...expJson.data, sig: sigJson.data };
+            currentData = expJson.data;
 
             if (compareYear && compareYear !== year) {
-                const [cExpResp, cSigResp] = await Promise.all([
-                    fetch(`${API_BASE}/expenses/deep-dive.php?exercice=${compareYear}`),
-                    fetch(`${API_BASE}/sig/simple.php?exercice=${compareYear}`)
-                ]);
+                const cExpResp = await fetch(`${API}/expenses/deep-dive.php?exercice=${compareYear}`);
                 const cExpJson = await cExpResp.json();
-                const cSigJson = await cSigResp.json();
-                compareData = { ...cExpJson.data, sig: cSigJson.data };
+                compareData = cExpJson.data;
             } else {
                 compareData = null;
             }
 
-            render();
+            renderSummary();
+            renderCategories();
+            renderCompare();
+            renderMonthly();
+            renderFournisseurs();
+            renderAlerts();
+            await loadLines();
         } catch (e) {
-            console.error('Erreur chargement:', e);
+            console.error('Erreur:', e);
         }
 
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('content').classList.remove('hidden');
     }
 
-    // ── Render ──
-    function render() {
-        const d = currentData;
-        const c = compareData;
-        const s = d.synthese;
+    // ── Load lines ──
+    async function loadLines() {
+        const year = document.getElementById('yearSelect').value;
+        const params = new URLSearchParams({
+            exercice: year,
+            page: linesState.page,
+            per_page: 100,
+            sort: linesState.sort,
+            order: linesState.order,
+        });
+        if (linesState.journal) params.set('journal', linesState.journal);
+        if (linesState.compte) params.set('compte', linesState.compte);
+        if (linesState.search) params.set('search', linesState.search);
 
-        // Synthèse
-        document.getElementById('totalCharges').textContent = EUR(s.total_charges);
-        document.getElementById('chargesFixes').textContent = EUR(s.charges_fixes);
-        document.getElementById('chargesVariables').textContent = EUR(s.charges_variables);
+        try {
+            const resp = await fetch(`${API}/expenses/lines.php?${params}`);
+            const json = await resp.json();
+            if (json.success) {
+                renderLines(json.data);
+                renderFilters(json.data.filters);
+            }
+        } catch (e) {
+            console.error('Erreur lignes:', e);
+        }
+    }
+
+    // ── Summary ──
+    function renderSummary() {
+        const s = currentData.synthese;
+        const c = compareData?.synthese;
+        document.getElementById('totalCharges').textContent = EUR0(s.total_charges);
+        document.getElementById('chargesFixes').textContent = EUR0(s.charges_fixes);
+        document.getElementById('chargesVariables').textContent = EUR0(s.charges_variables);
         document.getElementById('pctFixes').textContent = PCT(s.pct_fixes) + ' du total';
         document.getElementById('pctVariables').textContent = PCT(s.pct_variables) + ' du total';
         document.getElementById('nbFournisseurs').textContent = s.nb_fournisseurs;
+        const a = s.nb_doublons_detectes + s.nb_variations_atypiques;
+        document.getElementById('nbAlerts').textContent = a > 0 ? `${a} alertes` : 'Aucune alerte';
 
-        const alertCount = s.nb_doublons_detectes + s.nb_variations_atypiques;
-        document.getElementById('nbAlerts').textContent = alertCount > 0 ? `${alertCount} alertes` : 'Aucune alerte';
-
-        // Variation vs N-1
         if (c) {
-            const varPct = ((s.total_charges - c.synthese.total_charges) / (c.synthese.total_charges || 1) * 100);
+            const v = ((s.total_charges - c.total_charges) / (c.total_charges || 1) * 100);
             const el = document.getElementById('totalChargesVar');
-            el.textContent = (varPct >= 0 ? '+' : '') + varPct.toFixed(1) + '% vs N-1';
-            el.className = `text-xs font-bold mt-1 ${varPct > 5 ? 'text-red-500' : varPct < -5 ? 'text-green-500' : 'text-slate-400'}`;
+            el.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + '% vs N-1';
+            el.className = `text-[10px] font-bold mt-0.5 ${v > 5 ? 'text-red-500' : v < -5 ? 'text-green-500' : 'text-slate-400'}`;
             el.classList.remove('hidden');
+        } else {
+            document.getElementById('totalChargesVar').classList.add('hidden');
         }
-
-        renderCategories(d.par_categorie, c?.par_categorie);
-        renderCompare(d, c);
-        renderMonthly(d.evolution_mensuelle, c?.evolution_mensuelle);
-        renderComptes(d.par_compte, c?.par_compte);
-        renderFournisseurs(d.par_fournisseur);
-        renderAlerts(d);
     }
 
-    // ── Catégories PCG (barres horizontales) ──
-    function renderCategories(cats, cmpCats) {
-        const container = document.getElementById('categoriesChart');
+    // ── Catégories ──
+    function renderCategories() {
+        const cats = currentData.par_categorie;
+        const cmpCats = compareData?.par_categorie;
         const max = Math.max(...cats.map(c => c.montant), 1);
-        container.innerHTML = cats.map((cat, i) => {
-            const cmpCat = cmpCats?.find(c => c.code === cat.code);
-            const varHtml = cmpCat
-                ? (() => { const v = ((cat.montant - cmpCat.montant) / (cmpCat.montant || 1) * 100); return `<span class="${v > 5 ? 'text-red-500' : v < -5 ? 'text-green-500' : 'text-slate-400'} text-xs font-bold ml-2">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</span>`; })()
-                : '';
-            return `
-            <div class="flex items-center gap-3">
-                <div class="w-32 sm:w-48 shrink-0">
-                    <p class="text-xs font-bold text-slate-700 truncate">${cat.label}</p>
-                    <p class="text-[10px] text-slate-400">Classe ${cat.code}</p>
-                </div>
-                <div class="flex-1 flex items-center gap-2">
-                    <div class="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
-                        <div class="h-full rounded-full bar-animate" style="width:${(cat.montant/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div>
-                    </div>
-                    <span class="text-xs font-black text-slate-900 w-20 text-right shrink-0">${EUR(cat.montant)}</span>
-                    <span class="text-[10px] text-slate-400 w-10 text-right shrink-0">${PCT(cat.pct_total)}</span>
-                    ${varHtml}
-                </div>
+        document.getElementById('categoriesChart').innerHTML = cats.map((cat, i) => {
+            const cmp = cmpCats?.find(c => c.code === cat.code);
+            const varHtml = cmp ? (() => { const v = ((cat.montant - cmp.montant) / (cmp.montant || 1) * 100); return `<span class="${v > 5 ? 'text-red-500' : v < -5 ? 'text-green-500' : 'text-slate-400'} text-[10px] font-bold">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</span>`; })() : '';
+            return `<div class="flex items-center gap-2">
+                <div class="w-28 sm:w-40 shrink-0"><p class="text-[11px] font-bold text-slate-700 truncate">${cat.label}</p><p class="text-[9px] text-slate-400">Classe ${cat.code}</p></div>
+                <div class="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden"><div class="h-full rounded-full bar-animate" style="width:${(cat.montant/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+                <span class="text-[11px] font-black text-slate-900 w-20 text-right shrink-0">${EUR0(cat.montant)}</span>
+                <span class="text-[9px] text-slate-400 w-10 text-right shrink-0">${PCT(cat.pct_total)}</span>
+                ${varHtml}
             </div>`;
         }).join('');
     }
 
-    // ── Comparaison N vs N-1 ──
-    function renderCompare(d, c) {
+    // ── Compare ──
+    function renderCompare() {
         const section = document.getElementById('compareSection');
-        if (!c) { section.classList.add('hidden'); return; }
+        if (!compareData) { section.classList.add('hidden'); return; }
         section.classList.remove('hidden');
-
+        const d = currentData, c = compareData;
         document.getElementById('compareYearsLabel').textContent = `${d.exercice} vs ${c.exercice}`;
-        document.getElementById('compteVarHeader').classList.remove('hidden');
-
         const allCodes = new Set([...d.par_categorie.map(x=>x.code), ...c.par_categorie.map(x=>x.code)]);
         const rows = [...allCodes].sort().map(code => {
             const curr = d.par_categorie.find(x => x.code === code) || { label: code, montant: 0 };
             const prev = c.par_categorie.find(x => x.code === code) || { montant: 0 };
             const diff = curr.montant - prev.montant;
             const pct = prev.montant ? (diff / prev.montant * 100) : (curr.montant ? 100 : 0);
-            return { code, label: curr.label || prev.label || `Classe ${code}`, curr: curr.montant, prev: prev.montant, diff, pct };
+            return { code, label: curr.label || `Classe ${code}`, curr: curr.montant, prev: prev.montant, pct };
         });
-
-        const maxVal = Math.max(...rows.map(r => Math.max(r.curr, r.prev)), 1);
-        const container = document.getElementById('compareChart');
-        container.innerHTML = rows.map(r => `
+        const maxV = Math.max(...rows.map(r => Math.max(r.curr, r.prev)), 1);
+        document.getElementById('compareChart').innerHTML = rows.map(r => `
             <div class="space-y-1">
                 <div class="flex justify-between items-center">
-                    <span class="text-xs font-bold text-slate-700">${r.label}</span>
-                    <span class="text-xs font-bold ${r.pct > 5 ? 'text-red-500' : r.pct < -5 ? 'text-green-500' : 'text-slate-400'}">
-                        ${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(1)}%
-                    </span>
+                    <span class="text-[11px] font-bold text-slate-700">${r.label}</span>
+                    <span class="text-[11px] font-bold ${r.pct > 5 ? 'text-red-500' : r.pct < -5 ? 'text-green-500' : 'text-slate-400'}">${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(1)}%</span>
                 </div>
-                <div class="flex items-center gap-2 text-[10px]">
+                <div class="flex items-center gap-2 text-[9px]">
                     <span class="w-8 text-right text-blue-600 font-bold">${d.exercice}</span>
-                    <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
-                        <div class="h-full bg-blue-500 rounded-full" style="width:${(r.curr/maxVal*100).toFixed(1)}%"></div>
-                    </div>
-                    <span class="w-16 text-right font-bold text-slate-700">${EUR(r.curr)}</span>
+                    <div class="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden"><div class="h-full bg-blue-500 rounded-full" style="width:${(r.curr/maxV*100).toFixed(1)}%"></div></div>
+                    <span class="w-16 text-right font-bold text-slate-700">${EUR0(r.curr)}</span>
                 </div>
-                <div class="flex items-center gap-2 text-[10px]">
+                <div class="flex items-center gap-2 text-[9px]">
                     <span class="w-8 text-right text-slate-400 font-bold">${c.exercice}</span>
-                    <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
-                        <div class="h-full bg-slate-300 rounded-full" style="width:${(r.prev/maxVal*100).toFixed(1)}%"></div>
-                    </div>
-                    <span class="w-16 text-right font-bold text-slate-400">${EUR(r.prev)}</span>
+                    <div class="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden"><div class="h-full bg-slate-300 rounded-full" style="width:${(r.prev/maxV*100).toFixed(1)}%"></div></div>
+                    <span class="w-16 text-right font-bold text-slate-400">${EUR0(r.prev)}</span>
                 </div>
-            </div>
-        `).join('');
+            </div>`).join('');
     }
 
-    // ── Évolution mensuelle (canvas) ──
-    function renderMonthly(months, cmpMonths) {
+    // ── Monthly ──
+    function renderMonthly() {
+        const months = currentData.evolution_mensuelle;
+        const cmpMonths = compareData?.evolution_mensuelle;
         const container = document.getElementById('monthlyChart');
-        if (!months.length) {
-            container.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">Aucune donnée mensuelle</p>';
-            return;
-        }
-
-        // Construire 12 mois
+        if (!months.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">Aucune donnée</p>'; return; }
         const year = currentData.exercice;
         const data = Array.from({ length: 12 }, (_, i) => {
             const key = `${year}-${String(i + 1).padStart(2, '0')}`;
-            const found = months.find(m => m.mois === key);
-            return { month: MONTHS_FR[i], value: found?.total || 0 };
+            return { month: MONTHS_FR[i], value: months.find(m => m.mois === key)?.total || 0 };
         });
-
         let cmpData = null;
         if (cmpMonths?.length) {
             const cYear = compareData.exercice;
             cmpData = Array.from({ length: 12 }, (_, i) => {
                 const key = `${cYear}-${String(i + 1).padStart(2, '0')}`;
-                const found = cmpMonths.find(m => m.mois === key);
-                return { month: MONTHS_FR[i], value: found?.total || 0 };
+                return { value: cmpMonths.find(m => m.mois === key)?.total || 0 };
             });
         }
-
-        const maxVal = Math.max(...data.map(d => d.value), ...(cmpData?.map(d => d.value) || [0]), 1);
-
+        const maxV = Math.max(...data.map(d => d.value), ...(cmpData?.map(d => d.value) || [0]), 1);
         container.innerHTML = `
-            <div class="flex items-end justify-between gap-1 h-full px-1" style="min-height:180px">
+            <div class="flex items-end justify-between gap-1 h-full px-1" style="min-height:160px">
                 ${data.map((d, i) => {
-                    const h = (d.value / maxVal * 150);
-                    const ch = cmpData ? (cmpData[i].value / maxVal * 150) : 0;
-                    return `
-                    <div class="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                        ${d.value > 0 ? `<span class="text-[8px] font-bold text-slate-500 truncate">${EUR(d.value)}</span>` : ''}
-                        <div class="flex items-end gap-px w-full justify-center" style="height:160px">
-                            ${cmpData ? `<div class="bg-slate-200 rounded-t w-1/3 transition-all" style="height:${ch}px" title="${compareData.exercice}: ${EUR(cmpData[i].value)}"></div>` : ''}
-                            <div class="bg-blue-500 rounded-t ${cmpData ? 'w-1/3' : 'w-2/3'} transition-all" style="height:${h}px" title="${currentData.exercice}: ${EUR(d.value)}"></div>
+                    const h = (d.value / maxV * 140);
+                    const ch = cmpData ? (cmpData[i].value / maxV * 140) : 0;
+                    return `<div class="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
+                        ${d.value > 0 ? `<span class="text-[7px] font-bold text-slate-400">${EUR0(d.value)}</span>` : ''}
+                        <div class="flex items-end gap-px w-full justify-center" style="height:150px">
+                            ${cmpData ? `<div class="bg-slate-200 rounded-t w-1/3" style="height:${ch}px"></div>` : ''}
+                            <div class="bg-blue-500 rounded-t ${cmpData ? 'w-1/3' : 'w-2/3'}" style="height:${h}px"></div>
                         </div>
-                        <span class="text-[9px] font-bold text-slate-400">${d.month}</span>
+                        <span class="text-[8px] font-bold text-slate-400">${d.month}</span>
                     </div>`;
                 }).join('')}
             </div>
-            ${cmpData ? `
-            <div class="flex justify-center gap-4 mt-3 text-[10px] font-bold">
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-blue-500 inline-block"></span>${currentData.exercice}</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-slate-200 inline-block"></span>${compareData.exercice}</span>
-            </div>` : ''}
-        `;
+            ${cmpData ? `<div class="flex justify-center gap-4 mt-2 text-[9px] font-bold">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span>${currentData.exercice}</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200 inline-block"></span>${compareData.exercice}</span>
+            </div>` : ''}`;
     }
 
-    // ── Détail par compte ──
-    function renderComptes(comptes, cmpComptes) {
-        const tbody = document.getElementById('comptesBody');
-        tbody.innerHTML = comptes.map(c => {
-            const cmpC = cmpComptes?.find(x => x.compte_num === c.compte_num);
-            let varHtml = '';
-            if (cmpC) {
-                const v = ((c.montant - cmpC.montant) / (cmpC.montant || 1) * 100);
-                varHtml = `<td class="px-4 py-3 text-right text-xs font-bold ${v > 10 ? 'text-red-500' : v < -10 ? 'text-green-500' : 'text-slate-400'}">
-                    ${v >= 0 ? '+' : ''}${v.toFixed(1)}%
-                </td>`;
-            } else if (compareData) {
-                varHtml = '<td class="px-4 py-3 text-right text-xs text-slate-300">—</td>';
-            }
-            return `
-            <tr class="hover:bg-slate-50 transition-colors compte-row" data-search="${c.compte_num} ${(c.compte_lib||'').toLowerCase()}">
-                <td class="px-4 py-3 text-xs font-mono font-bold text-blue-600">${c.compte_num}</td>
-                <td class="px-4 py-3 text-xs font-bold text-slate-700">${c.compte_lib || '—'}</td>
-                <td class="px-4 py-3 text-right text-xs font-black text-slate-900">${EUR(c.montant)}</td>
-                <td class="px-4 py-3 text-right text-xs font-bold text-slate-400">${PCT(c.pct_total)}</td>
-                <td class="px-4 py-3 text-right text-xs text-slate-500 hidden sm:table-cell">${c.nb_ecritures}</td>
-                ${varHtml}
-            </tr>`;
-        }).join('');
-
-        // Recherche
-        document.getElementById('searchCompte').oninput = (e) => {
-            const q = e.target.value.toLowerCase();
-            document.querySelectorAll('.compte-row').forEach(row => {
-                row.style.display = row.dataset.search.includes(q) ? '' : 'none';
-            });
-        };
-    }
-
-    // ── Top Fournisseurs ──
-    function renderFournisseurs(fournisseurs) {
+    // ── Fournisseurs ──
+    function renderFournisseurs() {
+        const f = currentData.par_fournisseur;
         const container = document.getElementById('fournisseursChart');
-        if (!fournisseurs.length) {
-            container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Aucun fournisseur identifié</p>';
-            return;
-        }
-        const max = Math.max(...fournisseurs.map(f => f.montant), 1);
-        const top = fournisseurs.slice(0, 10);
-        container.innerHTML = top.map((f, i) => `
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500 shrink-0">${i + 1}</div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold text-slate-700 truncate">${f.nom || 'Non identifié'}</p>
-                    <p class="text-[10px] text-slate-400">${f.nb_factures} facture${f.nb_factures > 1 ? 's' : ''}</p>
-                </div>
-                <div class="w-24 sm:w-40 bg-slate-100 rounded-full h-4 overflow-hidden shrink-0">
-                    <div class="h-full bg-blue-500 rounded-full bar-animate" style="width:${(f.montant/max*100).toFixed(1)}%"></div>
-                </div>
-                <span class="text-xs font-black text-slate-900 w-20 text-right shrink-0">${EUR(f.montant)}</span>
-                <span class="text-[10px] text-slate-400 w-10 text-right shrink-0">${PCT(f.pct_total)}</span>
-            </div>
-        `).join('');
+        if (!f.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Aucun fournisseur</p>'; return; }
+        const max = Math.max(...f.map(x => x.montant), 1);
+        container.innerHTML = f.slice(0, 10).map((fi, i) => `
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0">${i + 1}</div>
+                <div class="flex-1 min-w-0"><p class="text-[11px] font-bold text-slate-700 truncate">${fi.nom || 'Non identifié'}</p><p class="text-[9px] text-slate-400">${fi.nb_factures} fact.</p></div>
+                <div class="w-20 sm:w-32 bg-slate-100 rounded-full h-3 overflow-hidden shrink-0"><div class="h-full bg-blue-500 rounded-full bar-animate" style="width:${(fi.montant/max*100).toFixed(1)}%"></div></div>
+                <span class="text-[11px] font-black text-slate-900 w-16 text-right shrink-0">${EUR0(fi.montant)}</span>
+            </div>`).join('');
     }
 
-    // ── Alertes ──
-    function renderAlerts(d) {
+    // ── Lines table ──
+    function renderLines(data) {
+        const { lines, pagination, totals } = data;
+        document.getElementById('linesCount').textContent = `${totals.nb_ecritures} écritures · Solde: ${EUR(totals.solde)}`;
+
+        const tbody = document.getElementById('linesBody');
+        tbody.innerHTML = lines.map(l => `
+            <tr class="line-row transition-colors">
+                <td class="px-3 py-2 text-[11px] text-slate-600 font-medium whitespace-nowrap">${dateFR(l.date)}</td>
+                <td class="px-3 py-2"><span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${l.journal}</span></td>
+                <td class="px-3 py-2 text-[11px] font-mono font-bold text-blue-600 whitespace-nowrap">${l.compte}</td>
+                <td class="px-3 py-2 text-[11px] text-slate-500 truncate max-w-[140px] hidden md:table-cell">${l.compte_lib || '—'}</td>
+                <td class="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">${l.piece || '—'}</td>
+                <td class="px-3 py-2 text-[11px] text-slate-700 truncate max-w-[200px]" title="${(l.libelle||'').replace(/"/g,'&quot;')}">${l.libelle || '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-bold ${l.debit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.debit > 0 ? EUR(l.debit) : '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-bold ${l.credit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.credit > 0 ? EUR(l.credit) : '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-black ${l.montant >= 0 ? 'text-red-600' : 'text-green-600'} whitespace-nowrap">${EUR(l.montant)}</td>
+            </tr>`).join('');
+
+        document.getElementById('totalDebit').textContent = EUR(totals.debit);
+        document.getElementById('totalCredit').textContent = EUR(totals.credit);
+        document.getElementById('totalSolde').textContent = EUR(totals.solde);
+
+        // Pagination
+        const { page, total_pages, total } = pagination;
+        document.getElementById('paginationInfo').textContent = `Page ${page}/${total_pages} · ${total} lignes au total`;
+        const btns = document.getElementById('paginationBtns');
+        btns.innerHTML = '';
+        if (total_pages <= 1) return;
+
+        const addBtn = (label, p, active = false) => {
+            const btn = document.createElement('button');
+            btn.className = `page-btn rounded-lg border text-[11px] font-bold transition-colors ${active ? 'active border-slate-900' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`;
+            btn.textContent = label;
+            btn.addEventListener('click', () => { linesState.page = p; loadLines(); window.scrollTo({ top: document.getElementById('linesTable').offsetTop - 80, behavior: 'smooth' }); });
+            btns.appendChild(btn);
+        };
+
+        if (page > 1) addBtn('‹', page - 1);
+        const start = Math.max(1, page - 2);
+        const end = Math.min(total_pages, page + 2);
+        if (start > 1) { addBtn('1', 1); if (start > 2) { const sp = document.createElement('span'); sp.textContent = '…'; sp.className = 'text-slate-300 px-1 self-center'; btns.appendChild(sp); } }
+        for (let i = start; i <= end; i++) addBtn(String(i), i, i === page);
+        if (end < total_pages) { if (end < total_pages - 1) { const sp = document.createElement('span'); sp.textContent = '…'; sp.className = 'text-slate-300 px-1 self-center'; btns.appendChild(sp); } addBtn(String(total_pages), total_pages); }
+        if (page < total_pages) addBtn('›', page + 1);
+    }
+
+    // ── Filters ──
+    function renderFilters(filters) {
+        const jSel = document.getElementById('filterJournal');
+        const cSel = document.getElementById('filterCompte');
+        if (jSel.options.length <= 1) {
+            filters.journals.forEach(j => jSel.add(new Option(`${j.journal_code} — ${j.journal_lib || ''}`, j.journal_code)));
+        }
+        if (cSel.options.length <= 1) {
+            const labels = { '60':'Achats','61':'Serv. ext.','62':'Autres serv.','63':'Impôts','64':'Personnel','65':'Autres charges','66':'Charges fin.','67':'Exceptionnel','68':'Dotations' };
+            filters.account_prefixes.forEach(a => cSel.add(new Option(`${a.prefix} — ${labels[a.prefix] || a.label} (${a.nb})`, a.prefix)));
+        }
+    }
+
+    // ── Export CSV ──
+    async function exportCSV() {
+        const year = document.getElementById('yearSelect').value;
+        const params = new URLSearchParams({ exercice: year, per_page: 10000, sort: linesState.sort, order: linesState.order });
+        if (linesState.journal) params.set('journal', linesState.journal);
+        if (linesState.compte) params.set('compte', linesState.compte);
+        if (linesState.search) params.set('search', linesState.search);
+
+        const resp = await fetch(`${API}/expenses/lines.php?${params}`);
+        const json = await resp.json();
+        if (!json.success) return;
+
+        const lines = json.data.lines;
+        const headers = ['Date','Journal','Compte','Libellé Compte','Pièce','Libellé Écriture','Débit','Crédit','Solde'];
+        const rows = lines.map(l => [l.date, l.journal, l.compte, l.compte_lib, l.piece, l.libelle, l.debit, l.credit, l.montant]);
+        const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `depenses_${year}.csv`; a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ── Alerts ──
+    function renderAlerts() {
+        const d = currentData;
         const section = document.getElementById('alertsSection');
         const content = document.getElementById('alertsContent');
         const alerts = [];
-
-        if (d.doublons_factures?.length) {
-            alerts.push(...d.doublons_factures.map(f =>
-                `<div class="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
-                    <i class="fas fa-copy text-red-400 mt-0.5"></i>
-                    <div>
-                        <p class="text-xs font-bold text-red-700">Doublon détecté</p>
-                        <p class="text-[10px] text-red-500">Fournisseur ${f.fournisseur || '?'} · ${EUR(f.montant)} · ${f.nb_occurrences}x</p>
-                    </div>
-                </div>`
-            ));
-        }
-
-        if (d.variations_atypiques?.length) {
-            alerts.push(...d.variations_atypiques.map(v =>
-                `<div class="flex items-start gap-3 p-3 bg-amber-50 rounded-xl">
-                    <i class="fas fa-chart-line text-amber-400 mt-0.5"></i>
-                    <div>
-                        <p class="text-xs font-bold text-amber-700">Variation atypique</p>
-                        <p class="text-[10px] text-amber-500">${v.label || v.compte} · ${v.variation_pct > 0 ? '+' : ''}${v.variation_pct?.toFixed(1)}%</p>
-                    </div>
-                </div>`
-            ));
-        }
-
-        if (alerts.length) {
-            section.classList.remove('hidden');
-            content.innerHTML = alerts.join('');
-        } else {
-            section.classList.add('hidden');
-        }
+        if (d.doublons_factures?.length) alerts.push(...d.doublons_factures.map(f => `<div class="flex items-start gap-2 p-2.5 bg-red-50 rounded-xl"><i class="fas fa-copy text-red-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-red-700">Doublon</p><p class="text-[10px] text-red-500">${f.fournisseur || '?'} · ${EUR(f.montant)} · ${f.nb_occurrences}x</p></div></div>`));
+        if (d.variations_atypiques?.length) alerts.push(...d.variations_atypiques.map(v => `<div class="flex items-start gap-2 p-2.5 bg-amber-50 rounded-xl"><i class="fas fa-chart-line text-amber-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-amber-700">Variation atypique</p><p class="text-[10px] text-amber-500">${v.label || v.compte} · ${v.variation_pct > 0 ? '+' : ''}${v.variation_pct?.toFixed(1)}%</p></div></div>`));
+        if (alerts.length) { section.classList.remove('hidden'); content.innerHTML = alerts.join(''); } else { section.classList.add('hidden'); }
     }
 
     // ── Boot ──
-    init().catch(e => {
-        document.getElementById('loading').innerHTML = `<p class="text-red-500 text-sm">Erreur: ${e.message}</p>`;
-    });
+    init().catch(e => { document.getElementById('loading').innerHTML = `<p class="text-red-500 text-sm font-bold">Erreur: ${e.message}</p>`; });
     </script>
 </body>
 </html>

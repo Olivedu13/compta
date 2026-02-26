@@ -45,15 +45,29 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
-    <!-- Navigation vers pages supplémentaires -->
-    <div id="nav-extra" style="position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;gap:8px;">
-        <a href="/depenses.html"
-           style="background:#1e293b;color:#fff;padding:10px 16px;border-radius:14px;font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:transform 0.2s,background 0.2s;"
-           onmouseover="this.style.background='#3b82f6';this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.background='#1e293b';this.style.transform='translateY(0)'">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Analyse Dépenses
-        </a>
-    </div>
+    <!-- Inject nav link into React header -->
+    <script>
+    (function injectNav() {
+        function tryInject() {
+            // Find the header rendered by React (first header or nav element)
+            const header = document.querySelector('header') || document.querySelector('nav') || document.querySelector('[class*="sticky"]');
+            if (!header) return setTimeout(tryInject, 300);
+            // Check if already injected
+            if (document.getElementById('nav-depenses-link')) return;
+            const link = document.createElement('a');
+            link.id = 'nav-depenses-link';
+            link.href = '/depenses.html';
+            link.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Dépenses';
+            link.style.cssText = 'background:#1e293b;color:#fff;padding:6px 14px;border-radius:12px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background 0.2s';
+            link.onmouseover = function(){ this.style.background='#3b82f6'; };
+            link.onmouseout = function(){ this.style.background='#1e293b'; };
+            // Insert into the header's flex container
+            const flexContainer = header.querySelector('[class*="flex"]') || header;
+            flexContainer.appendChild(link);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryInject);
+        else setTimeout(tryInject, 500);
+    })();
+    </script>
 </body>
 </html>
