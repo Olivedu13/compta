@@ -851,13 +851,16 @@
         section.classList.remove('hidden');
         const d = currentData, c = compareData;
         document.getElementById('compareYearsLabel').textContent = `${d.exercice} vs ${c.exercice}`;
-        const allCodes = new Set([...d.par_categorie.map(x=>x.code), ...c.par_categorie.map(x=>x.code)]);
+        // Normalize codes to string to avoid "60" !== 60 mismatch
+        const norm = cats => cats.map(x => ({...x, code: String(x.code)}));
+        const dCats = norm(d.par_categorie), cCats = norm(c.par_categorie);
+        const allCodes = new Set([...dCats.map(x=>x.code), ...cCats.map(x=>x.code)]);
         const rows = [...allCodes].sort().map(code => {
-            const curr = d.par_categorie.find(x => x.code === code) || { label: code, montant: 0 };
-            const prev = c.par_categorie.find(x => x.code === code) || { montant: 0 };
+            const curr = dCats.find(x => x.code === code) || { label: code, montant: 0 };
+            const prev = cCats.find(x => x.code === code) || { label: code, montant: 0 };
             const diff = curr.montant - prev.montant;
             const pct = prev.montant ? (diff / prev.montant * 100) : (curr.montant ? 100 : 0);
-            return { code, label: curr.label || `Classe ${code}`, curr: curr.montant, prev: prev.montant, pct };
+            return { code, label: curr.label || prev.label || CAT_LABELS[code] || `Classe ${code}`, curr: curr.montant, prev: prev.montant, pct };
         });
         const maxV = Math.max(...rows.map(r => Math.max(r.curr, r.prev)), 1);
         document.getElementById('compareChart').innerHTML = rows.map(r => `
