@@ -80,6 +80,43 @@ try {
     }
     
     // =============================================
+    // EXCLUSION DES TOTAUX BANCAIRES (doublons)
+    // Les banques enregistrent des récapitulatifs trimestriels (arrêtés de
+    // compte, résultats, intérêts/frais) qui reprennent les frais déjà
+    // comptés individuellement → double comptage sur comptes 627/661.
+    // =============================================
+    $exclStmt = $db->prepare("
+        SELECT 
+            SUBSTR(compte_num, 1, 1) as classe,
+            SUBSTR(compte_num, 1, 2) as racine2,
+            SUBSTR(compte_num, 1, 3) as racine3,
+            SUM(CAST(debit AS REAL)) as total_debit,
+            SUM(CAST(credit AS REAL)) as total_credit
+        FROM ecritures
+        WHERE exercice = ?
+          AND (compte_num LIKE '627%' OR compte_num LIKE '661%')
+          AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')
+        GROUP BY SUBSTR(compte_num, 1, 1), SUBSTR(compte_num, 1, 2), SUBSTR(compte_num, 1, 3)
+    ");
+    $exclStmt->execute([$exercice]);
+    while ($row = $exclStmt->fetch(PDO::FETCH_ASSOC)) {
+        $d = (float)$row['total_debit'];
+        $c = (float)$row['total_credit'];
+        $solde = $d - $c;
+        if (isset($soldes1[$row['classe']])) $soldes1[$row['classe']] -= $solde;
+        if (isset($soldes2[$row['racine2']])) $soldes2[$row['racine2']] -= $solde;
+        if (isset($soldes3[$row['racine3']])) $soldes3[$row['racine3']] -= $solde;
+        if (isset($debits2[$row['racine2']])) $debits2[$row['racine2']] -= $d;
+        if (isset($credits2[$row['racine2']])) $credits2[$row['racine2']] -= $c;
+        if (isset($debits3[$row['racine3']])) $debits3[$row['racine3']] -= $d;
+        if (isset($credits3[$row['racine3']])) $credits3[$row['racine3']] -= $c;
+    }
+
+    // =============================================
     // BILAN SIMPLIFIÉ
     // =============================================
     

@@ -135,6 +135,30 @@ XML;
         $s3[$r['racine3']] += $sol;
     }
     
+    // EXCLUSION DES TOTAUX BANCAIRES (doublons)
+    $exclStmt = $db->prepare("
+        SELECT 
+            SUBSTR(compte_num, 1, 2) as racine2,
+            SUBSTR(compte_num, 1, 3) as racine3,
+            SUM(CAST(debit AS REAL)) as total_debit,
+            SUM(CAST(credit AS REAL)) as total_credit
+        FROM ecritures
+        WHERE exercice = ?
+          AND (compte_num LIKE '627%' OR compte_num LIKE '661%')
+          AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')
+        GROUP BY SUBSTR(compte_num, 1, 2), SUBSTR(compte_num, 1, 3)
+    ");
+    $exclStmt->execute([$exercice]);
+    while ($row = $exclStmt->fetch(PDO::FETCH_ASSOC)) {
+        $solde = (float)$row['total_debit'] - (float)$row['total_credit'];
+        if (isset($s2[$row['racine2']])) $s2[$row['racine2']] -= $solde;
+        if (isset($s3[$row['racine3']])) $s3[$row['racine3']] -= $solde;
+    }
+
     // Calculs SIG
     $ca = -($s2['70'] ?? 0);
     $production = -(($s2['70'] ?? 0) + ($s2['71'] ?? 0) + ($s2['72'] ?? 0));

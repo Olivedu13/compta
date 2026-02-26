@@ -93,7 +93,7 @@ try {
     );
     $montantSalaires = (float)($salaireResult['montant_salaires'] ?? 0);
     
-    // 6. FRAIS BANCAIRES (627)
+    // 6. FRAIS BANCAIRES (627) — hors doublons (totaux trimestriels bancaires)
     $fraisResult = $db->fetchOne(
         "SELECT SUM(ABS(b.solde)) as frais_bancaires
         FROM fin_balance b
@@ -101,7 +101,23 @@ try {
           AND SUBSTRING(b.compte_num, 1, 3) = '627'",
         [$exercice]
     );
-    $montantFrais = (float)($fraisResult['frais_bancaires'] ?? 0);
+    $montantFraisBrut = (float)($fraisResult['frais_bancaires'] ?? 0);
+    
+    // Soustraire les doublons bancaires (arrêtés de compte, résultats trimestriels)
+    $doublonResult = $db->fetchOne(
+        "SELECT SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) as doublons
+        FROM ecritures
+        WHERE exercice = ?
+          AND compte_num LIKE '627%'
+          AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')",
+        [$exercice]
+    );
+    $montantDoublons = (float)($doublonResult['doublons'] ?? 0);
+    $montantFrais = round($montantFraisBrut - abs($montantDoublons), 2);
     
     // 7. CA TOTAL
     $caTotalResult = $db->fetchOne(
