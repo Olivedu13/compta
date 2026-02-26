@@ -44,6 +44,9 @@
                 <select id="yearCompare" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:border-blue-500 outline-none">
                     <option value="">Comparer…</option>
                 </select>
+                <button onclick="showImportModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors">
+                    <i class="fas fa-file-import mr-1"></i>Importer FEC
+                </button>
                 <a href="/" class="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-600 transition-colors">
                     <i class="fas fa-arrow-left mr-1"></i>Dashboard
                 </a>
@@ -224,6 +227,98 @@
         </div>
     </main>
 
+    <!-- MODAL DÉTAIL CATÉGORIE -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden" onclick="if(event.target===this)closeDetailModal()">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="relative mx-auto mt-8 mb-8 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" style="max-width:900px;max-height:calc(100vh - 4rem);display:flex;flex-direction:column">
+            <div class="p-5 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
+                <div>
+                    <h2 id="detailTitle" class="font-black text-slate-900 text-sm"><i class="fas fa-search-plus mr-1.5 text-blue-500"></i>Détail</h2>
+                    <p id="detailSubtitle" class="text-[10px] text-slate-400 font-bold mt-0.5"></p>
+                </div>
+                <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"><i class="fas fa-times text-slate-500"></i></button>
+            </div>
+            <div class="flex-1 overflow-auto p-5">
+                <div id="detailLoading" class="text-center py-12"><div class="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div><p class="text-sm text-slate-500 font-bold">Chargement…</p></div>
+                <div id="detailContent" class="hidden">
+                    <div id="detailNote" class="hidden mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-700 font-bold"><i class="fas fa-info-circle mr-1"></i><span id="detailNoteText"></span></div>
+                    <div id="detailStats" class="grid grid-cols-3 gap-3 mb-4"></div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left">
+                            <thead><tr class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                                <th class="px-3 py-2">Date</th><th class="px-3 py-2">Journal</th><th class="px-3 py-2">Compte</th><th class="px-3 py-2">Libellé</th><th class="px-3 py-2">Pièce</th><th class="px-3 py-2 text-right">Débit</th><th class="px-3 py-2 text-right">Crédit</th><th class="px-3 py-2 text-right">Montant</th>
+                            </tr></thead>
+                            <tbody id="detailBody"></tbody>
+                            <tfoot><tr class="bg-slate-50 border-t-2 border-slate-300"><td colspan="5" class="px-3 py-2 text-[11px] font-black text-slate-700">TOTAL</td><td id="detailTotalDebit" class="px-3 py-2 text-right text-[11px] font-black"></td><td id="detailTotalCredit" class="px-3 py-2 text-right text-[11px] font-black"></td><td id="detailTotalMontant" class="px-3 py-2 text-right text-[11px] font-black"></td></tr></tfoot>
+                        </table>
+                    </div>
+                    <div id="detailPagination" class="flex items-center justify-between mt-3">
+                        <span id="detailPagInfo" class="text-[10px] text-slate-400 font-bold"></span>
+                        <div id="detailPagBtns" class="flex gap-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL IMPORT FEC -->
+    <div id="importModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeImportModal()"></div>
+        <div class="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[600px] sm:max-h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-black text-slate-900 text-sm"><i class="fas fa-file-import mr-2 text-blue-500"></i>Importer un fichier FEC</h3>
+                <button onclick="closeImportModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto space-y-4">
+                <div id="importDropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-slate-300 mb-3"></i>
+                    <p class="text-sm font-bold text-slate-600">Glissez votre fichier FEC ici</p>
+                    <p class="text-[11px] text-slate-400 mt-1">ou cliquez pour parcourir (.txt, .csv)</p>
+                    <input type="file" id="fecFileInput" accept=".txt,.csv,.TXT,.CSV" class="hidden">
+                </div>
+                <div id="importPreview" class="hidden space-y-3">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-black text-slate-500 uppercase">Aperçu du fichier</span>
+                            <span id="importFileName" class="text-[11px] font-bold text-blue-600"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                                <p id="importTotalLines" class="text-lg font-black text-slate-900">0</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Lignes totales</p>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                                <p id="importChargesLines" class="text-lg font-black text-blue-600">0</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Charges (cl.6)</p>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-slate-200 text-center">
+                                <p id="importExercice" class="text-lg font-black text-amber-600">—</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Exercice</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="importSampleTable" class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left text-[10px]">
+                            <thead><tr class="bg-slate-50"><th class="px-2 py-1.5 font-black text-slate-400">Journal</th><th class="px-2 py-1.5 font-black text-slate-400">Date</th><th class="px-2 py-1.5 font-black text-slate-400">Compte</th><th class="px-2 py-1.5 font-black text-slate-400">Libellé</th><th class="px-2 py-1.5 font-black text-slate-400 text-right">Débit</th><th class="px-2 py-1.5 font-black text-slate-400 text-right">Crédit</th></tr></thead>
+                            <tbody id="importSampleBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="importProgress" class="hidden">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+                        <p id="importProgressText" class="text-sm font-bold text-blue-700">Import en cours…</p>
+                    </div>
+                </div>
+                <div id="importResult" class="hidden"></div>
+            </div>
+            <div class="p-5 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeImportModal()" class="px-4 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">Annuler</button>
+                <button id="importConfirmBtn" onclick="doImport()" class="px-4 py-2 rounded-xl text-[11px] font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors hidden"><i class="fas fa-upload mr-1"></i>Importer les lignes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     // ═══════════════════════════════════════
     // ANALYSE DÉTAILLÉE DES DÉPENSES v2
@@ -396,13 +491,119 @@
             const cmp = cmpCats?.find(c => c.code === cat.code);
             const varHtml = cmp ? (() => { const v = ((cat.montant - cmp.montant) / (cmp.montant || 1) * 100); return `<span class="${v > 5 ? 'text-red-500' : v < -5 ? 'text-green-500' : 'text-slate-400'} text-[10px] font-bold">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</span>`; })() : '';
             return `<div class="flex items-center gap-2">
-                <div class="w-28 sm:w-40 shrink-0"><p class="text-[11px] font-bold text-slate-700 truncate">${cat.label}</p><p class="text-[9px] text-slate-400">Classe ${cat.code}</p></div>
-                <div class="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden"><div class="h-full rounded-full bar-animate" style="width:${(cat.montant/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+                <div class="w-28 sm:w-40 shrink-0"><p class="text-[11px] font-bold text-slate-700 truncate">${cat.label}</p><p class="text-[9px] text-slate-400">Classe ${cat.code} · ${cat.nb_ecritures} écriture(s)</p></div>
+                <div class="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden cursor-pointer" onclick="showCategoryDetail('${cat.code}')" title="Voir le détail"><div class="h-full rounded-full bar-animate" style="width:${(cat.montant/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
                 <span class="text-[11px] font-black text-slate-900 w-20 text-right shrink-0">${EUR0(cat.montant)}</span>
                 <span class="text-[9px] text-slate-400 w-10 text-right shrink-0">${PCT(cat.pct_total)}</span>
                 ${varHtml}
+                <button onclick="showCategoryDetail('${cat.code}')" class="shrink-0 bg-slate-100 hover:bg-blue-500 hover:text-white text-slate-500 px-2 py-1 rounded-lg text-[9px] font-bold transition-all" title="Voir les écritures de cette catégorie"><i class="fas fa-search-plus mr-0.5"></i>Détail</button>
             </div>`;
         }).join('');
+    }
+
+    // ── Show category detail: modal with filtered lines ──
+    let detailState = { code: '', label: '', page: 1 };
+    const CAT_LABELS = { '60':'Achats (matières, marchandises)','61':'Services extérieurs','62':'Autres services extérieurs','63':'Impôts, taxes et versements','64':'Charges de personnel','65':'Autres charges de gestion','66':'Charges financières','67':'Charges exceptionnelles','68':'Dotations amort./provisions' };
+
+    function showCategoryDetail(code) {
+        detailState.code = String(code);
+        detailState.label = CAT_LABELS[detailState.code] || `Classe ${code}`;
+        detailState.page = 1;
+        document.getElementById('detailTitle').innerHTML = `<i class="fas fa-search-plus mr-1.5 text-blue-500"></i>Détail : ${detailState.label}`;
+        document.getElementById('detailSubtitle').textContent = `Classe ${code} · Exercice ${document.getElementById('yearSelect').value}`;
+        document.getElementById('detailLoading').classList.remove('hidden');
+        document.getElementById('detailContent').classList.add('hidden');
+        document.getElementById('detailModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        loadDetailPage();
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    async function loadDetailPage() {
+        const year = document.getElementById('yearSelect').value;
+        const params = new URLSearchParams({
+            exercice: year, page: detailState.page, per_page: 200,
+            compte: detailState.code, sort: 'montant', order: 'desc'
+        });
+        try {
+            const resp = await fetch(`${API}/expenses/lines.php?${params}`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error);
+            renderDetailModal(json.data, json.data.source || 'ecritures');
+        } catch (e) {
+            document.getElementById('detailLoading').classList.add('hidden');
+            document.getElementById('detailContent').classList.remove('hidden');
+            document.getElementById('detailContent').innerHTML = `<div class="text-center py-8 text-red-500 font-bold">${e.message}</div>`;
+        }
+    }
+
+    function renderDetailModal(data, source) {
+        const { lines, pagination, totals } = data;
+        document.getElementById('detailLoading').classList.add('hidden');
+        document.getElementById('detailContent').classList.remove('hidden');
+
+        // Note si données agrégées
+        const noteEl = document.getElementById('detailNote');
+        if (source === 'report') {
+            noteEl.classList.remove('hidden');
+            document.getElementById('detailNoteText').textContent = 'Données agrégées par compte (import FEC frontend). Importez votre fichier FEC via le bouton "Importer FEC" pour voir chaque écriture individuelle (nom salarié, facture, etc.).';
+        } else {
+            noteEl.classList.add('hidden');
+        }
+
+        // Stats
+        document.getElementById('detailStats').innerHTML = `
+            <div class="bg-blue-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-blue-700">${EUR0(totals.solde)}</p>
+                <p class="text-[9px] font-bold text-blue-400 uppercase">Total ${detailState.label.split(' ')[0]}</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-slate-700">${totals.nb_ecritures}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Écritures</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+                <p class="text-lg font-black text-slate-700">${lines.length > 0 ? EUR0(Math.max(...lines.map(l=>l.montant))) : '—'}</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Max unitaire</p>
+            </div>`;
+
+        // Table body
+        document.getElementById('detailBody').innerHTML = lines.map(l => `
+            <tr class="border-b border-slate-50 hover:bg-blue-50/40 transition-colors">
+                <td class="px-3 py-2 text-[11px] text-slate-600 whitespace-nowrap">${dateFR(l.date)}</td>
+                <td class="px-3 py-2"><span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${l.journal}</span></td>
+                <td class="px-3 py-2 text-[11px] font-mono font-bold text-blue-600 whitespace-nowrap">${l.compte}</td>
+                <td class="px-3 py-2 text-[11px] text-slate-700 truncate max-w-[250px]" title="${(l.libelle||'').replace(/"/g,'&quot;')}">${l.libelle || l.compte_lib || '—'}</td>
+                <td class="px-3 py-2 text-[10px] text-slate-400 whitespace-nowrap">${l.piece || '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-bold ${l.debit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.debit > 0 ? EUR(l.debit) : '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-bold ${l.credit > 0 ? 'text-slate-900' : 'text-slate-300'} whitespace-nowrap">${l.credit > 0 ? EUR(l.credit) : '—'}</td>
+                <td class="px-3 py-2 text-right text-[11px] font-black ${l.montant >= 0 ? 'text-red-600' : 'text-green-600'} whitespace-nowrap">${EUR(l.montant)}</td>
+            </tr>`).join('');
+
+        document.getElementById('detailTotalDebit').textContent = EUR(totals.debit);
+        document.getElementById('detailTotalCredit').textContent = EUR(totals.credit);
+        document.getElementById('detailTotalMontant').textContent = EUR(totals.solde);
+
+        // Pagination
+        const { page, total_pages, total } = pagination;
+        document.getElementById('detailPagInfo').textContent = `Page ${page}/${total_pages} · ${total} lignes`;
+        const btns = document.getElementById('detailPagBtns');
+        btns.innerHTML = '';
+        if (total_pages > 1) {
+            const addBtn = (label, p, active = false) => {
+                const btn = document.createElement('button');
+                btn.className = `px-2 py-1 rounded-lg border text-[11px] font-bold transition-colors ${active ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`;
+                btn.textContent = label;
+                btn.addEventListener('click', () => { detailState.page = p; loadDetailPage(); });
+                btns.appendChild(btn);
+            };
+            if (page > 1) addBtn('‹', page - 1);
+            for (let i = Math.max(1, page-2); i <= Math.min(total_pages, page+2); i++) addBtn(String(i), i, i === page);
+            if (page < total_pages) addBtn('›', page + 1);
+        }
     }
 
     // ── Compare ──
@@ -587,6 +788,246 @@
         if (d.doublons_factures?.length) alerts.push(...d.doublons_factures.map(f => `<div class="flex items-start gap-2 p-2.5 bg-red-50 rounded-xl"><i class="fas fa-copy text-red-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-red-700">Doublon</p><p class="text-[10px] text-red-500">${f.fournisseur || '?'} · ${EUR(f.montant)} · ${f.nb_occurrences}x</p></div></div>`));
         if (d.variations_atypiques?.length) alerts.push(...d.variations_atypiques.map(v => { const moisLabel = v.mois ? v.mois.replace(/(\d{4})-(\d{2})/, (_, y, m) => MONTHS_FR[parseInt(m)-1] + ' ' + y) : ''; const desc = v.categorie ? `${v.categorie} (${moisLabel})` : moisLabel; return `<div class="flex items-start gap-2 p-2.5 bg-amber-50 rounded-xl"><i class="fas fa-chart-line text-amber-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-amber-700">Variation atypique</p><p class="text-[10px] text-amber-500">${desc} · ${v.variation_pct > 0 ? '+' : ''}${v.variation_pct?.toFixed(1)}%</p></div></div>`; }));
         if (alerts.length) { section.classList.remove('hidden'); content.innerHTML = alerts.join(''); } else { section.classList.add('hidden'); }
+    }
+
+    // ═══════════════════════════════════════
+    // IMPORT FEC
+    // ═══════════════════════════════════════
+
+    let parsedFecLines = [];
+    let fecExercice = null;
+
+    function showImportModal() {
+        document.getElementById('importModal').classList.remove('hidden');
+        document.getElementById('importPreview').classList.add('hidden');
+        document.getElementById('importProgress').classList.add('hidden');
+        document.getElementById('importResult').classList.add('hidden');
+        document.getElementById('importConfirmBtn').classList.add('hidden');
+        document.getElementById('importDropZone').classList.remove('hidden');
+        parsedFecLines = [];
+        fecExercice = null;
+    }
+
+    function closeImportModal() {
+        document.getElementById('importModal').classList.add('hidden');
+    }
+
+    // Drag & drop + click
+    (function initImportUI() {
+        const zone = document.getElementById('importDropZone');
+        const input = document.getElementById('fecFileInput');
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('border-blue-400', 'bg-blue-50'); });
+        zone.addEventListener('dragleave', () => { zone.classList.remove('border-blue-400', 'bg-blue-50'); });
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('border-blue-400', 'bg-blue-50');
+            if (e.dataTransfer.files.length) handleFecFile(e.dataTransfer.files[0]);
+        });
+        input.addEventListener('change', e => { if (e.target.files.length) handleFecFile(e.target.files[0]); });
+    })();
+
+    function handleFecFile(file) {
+        document.getElementById('importFileName').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const result = parseFEC(e.target.result);
+                parsedFecLines = result.lines;
+                fecExercice = result.exercice;
+                showImportPreview(result);
+            } catch (err) {
+                alert('Erreur de lecture FEC: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function parseFEC(text) {
+        // Detect separator: tab, pipe, or semicolon
+        const firstLine = text.split('\n')[0];
+        let sep = '\t';
+        if (firstLine.includes('|') && !firstLine.includes('\t')) sep = '|';
+        else if (firstLine.includes(';') && !firstLine.includes('\t') && !firstLine.includes('|')) sep = ';';
+
+        const rawLines = text.split(/\r?\n/).filter(l => l.trim());
+        if (rawLines.length < 2) throw new Error('Fichier vide ou invalide');
+
+        // Parse header
+        const headers = rawLines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+
+        // Map FEC standard headers to our DB columns
+        const headerMap = {};
+        const stdNames = {
+            'JournalCode': 'journal_code', 'JournalLib': 'journal_lib',
+            'EcritureNum': 'ecriture_num', 'EcritureDate': 'ecriture_date',
+            'CompteNum': 'compte_num', 'CompteLib': 'compte_lib',
+            'CompAuxNum': 'numero_tiers', 'CompAuxLib': 'lib_tiers',
+            'PieceRef': 'piece_ref', 'PieceDate': 'date_piece',
+            'EcritureLib': 'libelle_ecriture',
+            'Debit': 'debit', 'Credit': 'credit',
+            'EcritureLet': 'lettrage_flag', 'DateLet': 'date_lettrage',
+            'MontantDevise': 'montant_devise', 'Idevise': 'devise_ecriture',
+        };
+        headers.forEach((h, i) => {
+            const key = Object.keys(stdNames).find(k => k.toLowerCase() === h.toLowerCase());
+            if (key) headerMap[stdNames[key]] = i;
+        });
+
+        if (headerMap['compte_num'] === undefined || headerMap['debit'] === undefined) {
+            throw new Error('En-têtes FEC non reconnus. Attendus: JournalCode, CompteNum, Debit, Credit, ...');
+        }
+
+        // Parse data lines
+        const lines = [];
+        let exercice = null;
+
+        for (let i = 1; i < rawLines.length; i++) {
+            const cols = rawLines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+            if (cols.length < 5) continue;
+
+            const get = key => headerMap[key] !== undefined ? (cols[headerMap[key]] || '') : '';
+
+            // Parse date: 20250101 → 2025-01-01
+            const rawDate = get('ecriture_date');
+            let date = rawDate;
+            if (/^\d{8}$/.test(rawDate)) {
+                date = rawDate.slice(0, 4) + '-' + rawDate.slice(4, 6) + '-' + rawDate.slice(6, 8);
+            }
+            const rawPieceDate = get('date_piece');
+            let pieceDate = rawPieceDate;
+            if (/^\d{8}$/.test(rawPieceDate)) {
+                pieceDate = rawPieceDate.slice(0, 4) + '-' + rawPieceDate.slice(4, 6) + '-' + rawPieceDate.slice(6, 8);
+            }
+
+            // Parse amounts: French format 1 234,56 → 1234.56
+            const parseAmount = s => {
+                if (!s) return 0;
+                return parseFloat(s.replace(/\s/g, '').replace(',', '.')) || 0;
+            };
+
+            // Detect exercice from first date
+            if (!exercice && date.length >= 4) {
+                exercice = parseInt(date.slice(0, 4));
+            }
+
+            lines.push({
+                journal_code: get('journal_code'),
+                journal_lib: get('journal_lib'),
+                ecriture_num: get('ecriture_num'),
+                ecriture_date: date,
+                compte_num: get('compte_num'),
+                compte_lib: get('compte_lib'),
+                numero_tiers: get('numero_tiers'),
+                lib_tiers: get('lib_tiers'),
+                piece_ref: get('piece_ref'),
+                date_piece: pieceDate,
+                libelle_ecriture: get('libelle_ecriture'),
+                debit: parseAmount(get('debit')),
+                credit: parseAmount(get('credit')),
+                lettrage_flag: get('lettrage_flag'),
+                date_lettrage: get('date_lettrage'),
+                montant_devise: get('montant_devise'),
+                devise_ecriture: get('devise_ecriture'),
+            });
+        }
+
+        const nbCharges = lines.filter(l => l.compte_num.startsWith('6')).length;
+
+        return { lines, exercice, nbCharges };
+    }
+
+    function showImportPreview(result) {
+        document.getElementById('importDropZone').classList.add('hidden');
+        document.getElementById('importPreview').classList.remove('hidden');
+        document.getElementById('importConfirmBtn').classList.remove('hidden');
+
+        document.getElementById('importTotalLines').textContent = result.lines.length.toLocaleString('fr-FR');
+        document.getElementById('importChargesLines').textContent = result.nbCharges.toLocaleString('fr-FR');
+        document.getElementById('importExercice').textContent = result.exercice || '?';
+
+        // Show sample of first 10 charge lines
+        const sample = result.lines.filter(l => l.compte_num.startsWith('6')).slice(0, 10);
+        document.getElementById('importSampleBody').innerHTML = sample.map(l => `
+            <tr class="border-t border-slate-100">
+                <td class="px-2 py-1 text-slate-600">${l.journal_code}</td>
+                <td class="px-2 py-1 text-slate-600">${l.ecriture_date}</td>
+                <td class="px-2 py-1 font-mono text-blue-600 font-bold">${l.compte_num}</td>
+                <td class="px-2 py-1 text-slate-700 truncate max-w-[200px]">${l.libelle_ecriture || l.compte_lib}</td>
+                <td class="px-2 py-1 text-right font-bold ${l.debit > 0 ? 'text-slate-900' : 'text-slate-300'}">${l.debit > 0 ? EUR(l.debit) : '—'}</td>
+                <td class="px-2 py-1 text-right font-bold ${l.credit > 0 ? 'text-slate-900' : 'text-slate-300'}">${l.credit > 0 ? EUR(l.credit) : '—'}</td>
+            </tr>`).join('');
+    }
+
+    async function doImport() {
+        if (!parsedFecLines.length || !fecExercice) return;
+
+        document.getElementById('importPreview').classList.add('hidden');
+        document.getElementById('importConfirmBtn').classList.add('hidden');
+        document.getElementById('importProgress').classList.remove('hidden');
+        document.getElementById('importProgressText').textContent = `Import de ${parsedFecLines.length.toLocaleString('fr-FR')} lignes…`;
+
+        try {
+            // Send in chunks if needed (max ~5000 per request)
+            const CHUNK = 5000;
+            let totalImported = 0;
+            const totalChunks = Math.ceil(parsedFecLines.length / CHUNK);
+
+            for (let c = 0; c < totalChunks; c++) {
+                const chunk = parsedFecLines.slice(c * CHUNK, (c + 1) * CHUNK);
+                const isFirst = c === 0;
+
+                document.getElementById('importProgressText').textContent = 
+                    totalChunks > 1 ? `Envoi lot ${c + 1}/${totalChunks}…` : `Import de ${parsedFecLines.length.toLocaleString('fr-FR')} lignes…`;
+
+                // For the first chunk, the endpoint deletes existing data
+                // For subsequent chunks, we need to append
+                const resp = await fetch(`${API}/fec/upload.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        exercice: fecExercice,
+                        lines: chunk,
+                        append: !isFirst,
+                    })
+                });
+                const json = await resp.json();
+                if (!json.success) throw new Error(json.error || 'Erreur serveur');
+                totalImported += json.imported;
+            }
+
+            document.getElementById('importProgress').classList.add('hidden');
+            document.getElementById('importResult').classList.remove('hidden');
+            document.getElementById('importResult').innerHTML = `
+                <div class="bg-green-50 rounded-xl p-4 text-center">
+                    <i class="fas fa-check-circle text-2xl text-green-500 mb-2"></i>
+                    <p class="text-sm font-bold text-green-700">Import réussi !</p>
+                    <p class="text-[11px] text-green-600 mt-1">${totalImported.toLocaleString('fr-FR')} lignes importées pour l'exercice ${fecExercice}</p>
+                </div>`;
+
+            // Refresh data after 1.5s
+            setTimeout(() => {
+                closeImportModal();
+                // Reset filters
+                linesState = { sort: 'date', order: 'desc', page: 1, journal: '', compte: '', search: '' };
+                document.getElementById('filterJournal').innerHTML = '<option value="">Tous journaux</option>';
+                document.getElementById('filterCompte').innerHTML = '<option value="">Tous comptes</option>';
+                document.getElementById('searchLines').value = '';
+                loadAll();
+            }, 1500);
+
+        } catch (err) {
+            document.getElementById('importProgress').classList.add('hidden');
+            document.getElementById('importResult').classList.remove('hidden');
+            document.getElementById('importResult').innerHTML = `
+                <div class="bg-red-50 rounded-xl p-4 text-center">
+                    <i class="fas fa-times-circle text-2xl text-red-500 mb-2"></i>
+                    <p class="text-sm font-bold text-red-700">Erreur d'import</p>
+                    <p class="text-[11px] text-red-500 mt-1">${err.message}</p>
+                </div>`;
+        }
     }
 
     // ── Boot ──
