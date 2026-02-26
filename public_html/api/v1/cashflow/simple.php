@@ -22,7 +22,11 @@ try {
     }
     
     // Get DB - 5 levels up: cashflow -> v1 -> api -> public_html -> compta
-    $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+    // Find project root (works locally with public_html/ and on Ionos flat webroot)
+    $projectRoot = dirname(dirname(dirname(__DIR__)));
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = dirname($projectRoot);
+    }
     $dbPath = $projectRoot . '/compta.db';
     
     if (!file_exists($dbPath)) {
@@ -40,7 +44,7 @@ try {
     $stmt->execute([$exercice]);
     $journals = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
-    // Par journal - totals
+    // Par journal - totals (mouvements bruts par journal)
     $parJournal = [];
     foreach ($journals as $journal) {
         $stmt = $db->prepare("
@@ -59,58 +63,92 @@ try {
         $parJournal[] = [
             'journal' => $journal,
             'journal_lib' => $row['journal_lib'] ?? '',
-            'entrees' => (float)($row['total_debit'] ?? 0),
-            'sorties' => (float)($row['total_credit'] ?? 0),
+            'total_debit' => (float)($row['total_debit'] ?? 0),
+            'total_credit' => (float)($row['total_credit'] ?? 0),
             'flux_net' => (float)(($row['total_debit'] ?? 0) - ($row['total_credit'] ?? 0)),
             'nb_ecritures' => (int)($row['nb_ecritures'] ?? 0)
         ];
     }
     
-    // Par période (par mois pour l'année)
+    // Cashflow réel = mouvements sur comptes de trésorerie (classe 5)
+    // Débit classe 5 = encaissement, Crédit classe 5 = décaissement
     $parPeriode = [];
     for ($month = 1; $month <= 12; $month++) {
         $monthStr = str_pad($month, 2, '0', STR_PAD_LEFT);
         
+        // Flux trésorerie (comptes 5xx)
         $stmt = $db->prepare("
             SELECT 
-                SUM(CAST(debit AS REAL)) as total_debit,
-                SUM(CAST(credit AS REAL)) as total_credit,
+                SUM(CAST(debit AS REAL)) as encaissements,
+                SUM(CAST(credit AS REAL)) as decaissements,
                 COUNT(*) as nb_ecritures
             FROM ecritures
             WHERE exercice = ? AND strftime('%m', ecriture_date) = ?
+              AND SUBSTR(compte_num, 1, 1) = '5'
         ");
         $stmt->execute([$exercice, $monthStr]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $tresorerie = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (($row['total_debit'] ?? 0) > 0 || ($row['total_credit'] ?? 0) > 0) {
+        // Produits encaissés (classe 7)
+        $stmt = $db->prepare("
+            SELECT SUM(CAST(credit AS REAL)) - SUM(CAST(debit AS REAL)) as produits
+            FROM ecritures
+            WHERE exercice = ? AND strftime('%m', ecriture_date) = ?
+              AND SUBSTR(compte_num, 1, 1) = '7'
+        ");
+        $stmt->execute([$exercice, $monthStr]);
+        $prodRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Charges décaissées (classe 6)  
+        $stmt = $db->prepare("
+            SELECT SUM(CAST(debit AS REAL)) - SUM(CAST(credit AS REAL)) as charges
+            FROM ecritures
+            WHERE exercice = ? AND strftime('%m', ecriture_date) = ?
+              AND SUBSTR(compte_num, 1, 1) = '6'
+        ");
+        $stmt->execute([$exercice, $monthStr]);
+        $chargesRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $enc = (float)($tresorerie['encaissements'] ?? 0);
+        $dec = (float)($tresorerie['decaissements'] ?? 0);
+        
+        if ($enc > 0 || $dec > 0) {
             $parPeriode[] = [
                 'periode' => $monthStr . '/' . $exercice,
-                'entrees' => (float)($row['total_debit'] ?? 0),
-                'sorties' => (float)($row['total_credit'] ?? 0),
-                'flux_net' => (float)(($row['total_debit'] ?? 0) - ($row['total_credit'] ?? 0)),
-                'nb_ecritures' => (int)($row['nb_ecritures'] ?? 0)
+                'encaissements' => $enc,
+                'decaissements' => $dec,
+                'flux_net' => $enc - $dec,
+                'produits_periode' => (float)($prodRow['produits'] ?? 0),
+                'charges_periode' => (float)($chargesRow['charges'] ?? 0),
+                'resultat_periode' => (float)($prodRow['produits'] ?? 0) - (float)($chargesRow['charges'] ?? 0),
+                'nb_ecritures' => (int)($tresorerie['nb_ecritures'] ?? 0)
             ];
         }
     }
     
-    // Stats globales
+    // Stats globales trésorerie (comptes 5xx uniquement)
     $stmt = $db->prepare("
         SELECT 
-            SUM(CAST(debit AS REAL)) as total_debit,
-            SUM(CAST(credit AS REAL)) as total_credit,
+            SUM(CAST(debit AS REAL)) as total_encaissements,
+            SUM(CAST(credit AS REAL)) as total_decaissements,
             COUNT(*) as nb_ecritures
         FROM ecritures
-        WHERE exercice = ?
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '5'
     ");
     $stmt->execute([$exercice]);
     $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     
+    // Solde trésorerie fin de période
+    $totalEnc = (float)($stats['total_encaissements'] ?? 0);
+    $totalDec = (float)($stats['total_decaissements'] ?? 0);
+    
     $cashflow = [
         'exercice' => $exercice,
         'stats_globales' => [
-            'total_entrees' => (float)($stats['total_debit'] ?? 0),
-            'total_sorties' => (float)($stats['total_credit'] ?? 0),
-            'flux_net_total' => (float)(($stats['total_debit'] ?? 0) - ($stats['total_credit'] ?? 0))
+            'total_encaissements' => $totalEnc,
+            'total_decaissements' => $totalDec,
+            'flux_net_tresorerie' => $totalEnc - $totalDec,
+            'nb_mouvements_tresorerie' => (int)($stats['nb_ecritures'] ?? 0)
         ],
         'par_journal' => $parJournal,
         'par_periode' => $parPeriode

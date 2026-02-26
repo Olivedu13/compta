@@ -1,7 +1,9 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$bootstrap_path = dirname(dirname(dirname(__FILE__))) . '/bootstrap.php';
+$_root = dirname(dirname(dirname(__FILE__)));
+if (!file_exists($_root . '/bootstrap.php')) $_root = dirname($_root);
+$bootstrap_path = $_root . '/bootstrap.php';
 require_once $bootstrap_path;
 
 try {

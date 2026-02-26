@@ -34,12 +34,16 @@ class Database {
                     ]
                 );
             } else {
-                // Configuration MySQL
-                $host = getenv('DB_HOST') ?: 'localhost';
-                $db = getenv('DB_NAME') ?: 'compta_atc';
-                $user = getenv('DB_USER') ?: 'compta_user';
-                $password = getenv('DB_PASS') ?: 'password123';
+                // Configuration MySQL — credentials OBLIGATOIRES depuis .env
+                $host = getenv('DB_HOST');
+                $db = getenv('DB_NAME');
+                $user = getenv('DB_USER');
+                $password = getenv('DB_PASS');
                 $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
+                
+                if (!$host || !$db || !$user) {
+                    throw new \PDOException('MySQL credentials missing — check .env file (DB_HOST, DB_NAME, DB_USER, DB_PASS)');
+                }
                 
                 $dsn = "mysql:host={$host};dbname={$db};charset={$charset}";
                 

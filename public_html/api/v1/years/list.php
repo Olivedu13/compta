@@ -9,7 +9,11 @@ header('Content-Type: application/json; charset=utf-8');
 
 try {
     // Get DB - 5 levels up: years -> v1 -> api -> public_html -> compta
-    $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+    // Find project root (works locally with public_html/ and on Ionos flat webroot)
+    $projectRoot = dirname(dirname(dirname(__DIR__)));
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = dirname($projectRoot);
+    }
     $dbPath = $projectRoot . '/compta.db';
     
     if (!file_exists($dbPath)) {

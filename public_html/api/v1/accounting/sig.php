@@ -21,7 +21,11 @@ try {
     
     // Get DB
     if (!isset($db)) {
-        $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+        // Find project root (works locally with public_html/ and on Ionos flat webroot)
+        $projectRoot = dirname(dirname(dirname(__DIR__)));
+        if (!file_exists($projectRoot . '/compta.db')) {
+            $projectRoot = dirname($projectRoot);
+        }
         $dbPath = $projectRoot . '/compta.db';
         if (!file_exists($dbPath)) {
             throw new Exception("Database not found");

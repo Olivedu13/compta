@@ -11,6 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 // ========================================
 
 $projectRoot = dirname(dirname(dirname(__FILE__)));
+if (!file_exists($projectRoot . '/compta.db')) $projectRoot = dirname($projectRoot);
 $dbPath = $projectRoot . '/compta.db';
 
 if (!file_exists($dbPath)) {

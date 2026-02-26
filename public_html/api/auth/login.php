@@ -26,9 +26,12 @@ if (!$email || !$password) {
     die(json_encode(['success' => false, 'error' => 'Email and password required']));
 }
 
-// Step 2: Load bootstrap - from /api/auth/ we need to go up 3 levels to /
-// /compta/public_html/api/auth/login.php needs ../../bootstrap.php
-$bootstrap_path = dirname(dirname(dirname(__FILE__))) . '/bootstrap.php';
+// Step 2: Load bootstrap — compatible local (public_html/) et Ionos (flat webroot)
+$_root = dirname(dirname(dirname(__FILE__)));
+if (!file_exists($_root . '/bootstrap.php')) {
+    $_root = dirname($_root);
+}
+$bootstrap_path = $_root . '/bootstrap.php';
 error_log("LOGIN: Loading bootstrap from $bootstrap_path");
 
 if (!file_exists($bootstrap_path)) {

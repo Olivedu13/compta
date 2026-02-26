@@ -11,7 +11,12 @@
  * @return {success: boolean, data: array, pagination: object, error?: string}
  */
 
-require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/backend/bootstrap.php';
+// Find project root (works locally with public_html/ and on Ionos flat webroot)
+$_projectRoot = dirname(dirname(dirname(__DIR__)));
+if (!file_exists($_projectRoot . '/backend/bootstrap.php')) {
+    $_projectRoot = dirname($_projectRoot);
+}
+require_once $_projectRoot . '/backend/bootstrap.php';
 
 use App\Config\Database;
 use App\Config\InputValidator;

@@ -20,7 +20,11 @@ try {
     }
     
     // Get DB - 5 levels up: kpis -> v1 -> api -> public_html -> compta
-    $projectRoot = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+    // Find project root (works locally with public_html/ and on Ionos flat webroot)
+    $projectRoot = dirname(dirname(dirname(__DIR__)));
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = dirname($projectRoot);
+    }
     $dbPath = $projectRoot . '/compta.db';
     
     if (!file_exists($dbPath)) {
@@ -81,8 +85,8 @@ try {
     // Organize by class
     $parClasse = [];
     $classLabels = [
-        '1' => 'Immobilisations',
-        '2' => 'Actifs circulants',
+        '1' => 'Capitaux propres',
+        '2' => 'Immobilisations',
         '3' => 'Stocks',
         '4' => 'Tiers',
         '5' => 'Trésorerie',
@@ -153,10 +157,10 @@ try {
         }
         // Tiers (411, 401 - comptes 4)
         if (substr($num, 0, 3) === '411') {
-            $tiersBalance['clients'] += $solde;
+            $tiers['clients'] += $solde;
         }
         if (substr($num, 0, 3) === '401') {
-            $tiersBalance['fournisseurs'] += $solde;
+            $tiers['fournisseurs'] += $solde;
         }
     }
     
@@ -170,7 +174,7 @@ try {
         ],
         'stock' => $stock,
         'tresorerie' => $tresorerie,
-        'tiers' => $tiersBalance,
+        'tiers' => $tiers,
         'par_classe' => $parClasse,
         'top_tiers' => $topTiers
     ];

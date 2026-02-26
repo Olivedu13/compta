@@ -8,14 +8,23 @@ header('Content-Type: application/json; charset=utf-8');
 
 try {
     // ========================================
-    // Initialisation DB
+    // Initialisation DB (progressive resolution for Ionos flat webroot)
     // ========================================
-    $projectRoot = dirname(dirname(dirname(__FILE__)));
+    $projectRoot = dirname(dirname(__DIR__)); // /api/.. = webroot
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = dirname($projectRoot); // try one more up
+    }
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = dirname(dirname(dirname(__DIR__))); // fallback deep
+    }
+    if (!file_exists($projectRoot . '/compta.db')) {
+        $projectRoot = $_SERVER['DOCUMENT_ROOT'] ?: dirname(dirname(__DIR__));
+    }
     $dbPath = $projectRoot . '/compta.db';
     
     if (!file_exists($dbPath)) {
         http_response_code(500);
-        throw new Exception("Base de données non trouvée: $dbPath");
+        throw new Exception("Base de données non trouvée: $dbPath (root=$projectRoot)");
     }
     
     $db = new PDO('sqlite:' . $dbPath);

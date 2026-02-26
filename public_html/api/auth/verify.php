@@ -1,5 +1,7 @@
 <?php
-require_once dirname(dirname(__FILE__)) . '/bootstrap.php';
+$_root = dirname(dirname(__FILE__));
+if (!file_exists($_root . '/bootstrap.php')) $_root = dirname($_root);
+require_once $_root . '/bootstrap.php';
 
 use App\Config\AuthMiddleware;
 use App\Config\Logger;

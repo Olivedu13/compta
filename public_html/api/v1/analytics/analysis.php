@@ -7,7 +7,12 @@
  * - exercice (required): Année comptable (ex: 2024)
  */
 
-require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/backend/bootstrap.php';
+// Find project root (works locally with public_html/ and on Ionos flat webroot)
+$_projectRoot = dirname(dirname(dirname(__DIR__)));
+if (!file_exists($_projectRoot . '/backend/bootstrap.php')) {
+    $_projectRoot = dirname($_projectRoot);
+}
+require_once $_projectRoot . '/backend/bootstrap.php';
 
 use App\Config\InputValidator;
 use App\Config\Logger;
