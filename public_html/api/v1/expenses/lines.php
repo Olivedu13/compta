@@ -127,9 +127,15 @@ try {
         
         // Sort
         usort($allLines, function($a, $b) use ($sortField, $sortOrder) {
-            $map = ['date' => 'date', 'compte' => 'compte', 'montant' => 'montant', 'libelle' => 'libelle'];
+            $map = ['date' => 'date', 'compte' => 'compte', 'montant' => 'montant', 'libelle' => 'libelle',
+                    'journal' => 'journal', 'compte_lib' => 'compte_lib', 'piece' => 'piece',
+                    'debit' => 'debit', 'credit' => 'credit'];
             $key = $map[$sortField] ?? 'montant';
-            $cmp = $key === 'montant' ? ($a[$key] <=> $b[$key]) : strcmp($a[$key], $b[$key]);
+            if (in_array($key, ['montant', 'debit', 'credit'])) {
+                $cmp = ($a[$key] <=> $b[$key]);
+            } else {
+                $cmp = strcmp($a[$key] ?? '', $b[$key] ?? '');
+            }
             return $sortOrder === 'ASC' ? $cmp : -$cmp;
         });
         
@@ -199,7 +205,11 @@ try {
         'compte' => 'compte_num',
         'montant' => '(CAST(debit AS REAL) - CAST(credit AS REAL))',
         'journal' => 'journal_code',
-        'libelle' => 'libelle_ecriture'
+        'libelle' => 'libelle_ecriture',
+        'compte_lib' => 'compte_lib',
+        'piece' => 'piece_ref',
+        'debit' => 'CAST(debit AS REAL)',
+        'credit' => 'CAST(credit AS REAL)'
     ];
     $sortCol = $sortMap[$sortField] ?? 'ecriture_date';
     

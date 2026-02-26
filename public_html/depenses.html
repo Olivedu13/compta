@@ -164,20 +164,32 @@
                     <table class="w-full text-left" id="linesTable">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn" data-sort="date">
-                                    Date <i class="fas fa-sort ml-0.5"></i>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="date">
+                                    Date <i class="fas fa-sort ml-0.5 text-slate-300"></i>
                                 </th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Jrnl</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn" data-sort="compte">
-                                    Compte <i class="fas fa-sort ml-0.5"></i>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="journal">
+                                    Jrnl <i class="fas fa-sort ml-0.5 text-slate-300"></i>
                                 </th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider hidden md:table-cell">Lib. compte</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Pièce</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider">Libellé écriture</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right">Débit</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right">Crédit</th>
-                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right sort-btn" data-sort="montant">
-                                    Solde <i class="fas fa-sort ml-0.5"></i>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="compte">
+                                    Compte <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider hidden md:table-cell sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="compte_lib">
+                                    Lib. compte <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="piece">
+                                    Pièce <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="libelle">
+                                    Libellé écriture <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="debit">
+                                    Débit <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="credit">
+                                    Crédit <i class="fas fa-sort ml-0.5 text-slate-300"></i>
+                                </th>
+                                <th class="px-3 py-2.5 text-[9px] font-black text-slate-400 uppercase tracking-wider text-right sort-btn cursor-pointer hover:text-blue-500 select-none" data-sort="montant">
+                                    Solde <i class="fas fa-sort ml-0.5 text-slate-300"></i>
                                 </th>
                             </tr>
                         </thead>
@@ -253,9 +265,26 @@
                     linesState.order = 'desc';
                 }
                 linesState.page = 1;
+                updateSortIndicators();
                 loadLines();
             });
         });
+
+        function updateSortIndicators() {
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                const icon = btn.querySelector('i');
+                if (!icon) return;
+                if (btn.dataset.sort === linesState.sort) {
+                    btn.classList.add('text-blue-600');
+                    btn.classList.remove('text-slate-400');
+                    icon.className = linesState.order === 'asc' ? 'fas fa-sort-up ml-0.5 text-blue-500' : 'fas fa-sort-down ml-0.5 text-blue-500';
+                } else {
+                    btn.classList.remove('text-blue-600');
+                    btn.classList.add('text-slate-400');
+                    icon.className = 'fas fa-sort ml-0.5 text-slate-300';
+                }
+            });
+        }
 
         // Filters
         document.getElementById('filterJournal').addEventListener('change', e => { linesState.journal = e.target.value; linesState.page = 1; loadLines(); });
@@ -556,7 +585,7 @@
         const content = document.getElementById('alertsContent');
         const alerts = [];
         if (d.doublons_factures?.length) alerts.push(...d.doublons_factures.map(f => `<div class="flex items-start gap-2 p-2.5 bg-red-50 rounded-xl"><i class="fas fa-copy text-red-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-red-700">Doublon</p><p class="text-[10px] text-red-500">${f.fournisseur || '?'} · ${EUR(f.montant)} · ${f.nb_occurrences}x</p></div></div>`));
-        if (d.variations_atypiques?.length) alerts.push(...d.variations_atypiques.map(v => `<div class="flex items-start gap-2 p-2.5 bg-amber-50 rounded-xl"><i class="fas fa-chart-line text-amber-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-amber-700">Variation atypique</p><p class="text-[10px] text-amber-500">${v.label || v.compte} · ${v.variation_pct > 0 ? '+' : ''}${v.variation_pct?.toFixed(1)}%</p></div></div>`));
+        if (d.variations_atypiques?.length) alerts.push(...d.variations_atypiques.map(v => { const moisLabel = v.mois ? v.mois.replace(/(\d{4})-(\d{2})/, (_, y, m) => MONTHS_FR[parseInt(m)-1] + ' ' + y) : ''; const desc = v.categorie ? `${v.categorie} (${moisLabel})` : moisLabel; return `<div class="flex items-start gap-2 p-2.5 bg-amber-50 rounded-xl"><i class="fas fa-chart-line text-amber-400 mt-0.5"></i><div><p class="text-[11px] font-bold text-amber-700">Variation atypique</p><p class="text-[10px] text-amber-500">${desc} · ${v.variation_pct > 0 ? '+' : ''}${v.variation_pct?.toFixed(1)}%</p></div></div>`; }));
         if (alerts.length) { section.classList.remove('hidden'); content.innerHTML = alerts.join(''); } else { section.classList.add('hidden'); }
     }
 
