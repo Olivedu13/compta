@@ -172,15 +172,31 @@ try {
     // KPIs FINANCIERS
     // =============================================
     
-    // --- CA et SIG de base ---
+    // --- SIG CASCADE (identique à sig/simple.php) ---
     $ca_net = -($soldes2['70'] ?? 0);
-    $achats = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['607'] ?? 0);
+    $production = -(($soldes2['70'] ?? 0) + ($soldes2['71'] ?? 0) + ($soldes2['72'] ?? 0));
+    $achats_mp = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['603'] ?? 0);
+    $achats = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['607'] ?? 0); // pour seuil rentabilité
     $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0);
     $charges_personnel = $soldes2['64'] ?? 0;
     $impots_taxes = $soldes2['63'] ?? 0;
     $dotations = ($soldes3['681'] ?? 0) + ($soldes3['686'] ?? 0) + ($soldes3['687'] ?? 0);
     $charges_financieres = $soldes2['66'] ?? 0;
-    $resultat_net = -($soldes1['7'] ?? 0) - ($soldes1['6'] ?? 0);
+    $produits_financiers = -($soldes2['76'] ?? 0);
+    $subventions = -($soldes2['74'] ?? 0);
+
+    // Cascade SIG PCG — mêmes formules que sig/simple.php
+    $marge_production = $production - $achats_mp;
+    $valeur_ajoutee = $marge_production - $services_ext;
+    $ebe = $valeur_ajoutee + $subventions - $impots_taxes - $charges_personnel;
+    $autres_produits_exploit = -(($soldes2['75'] ?? 0) + ($soldes2['78'] ?? 0) + ($soldes2['79'] ?? 0));
+    $autres_charges_exploit = ($soldes2['65'] ?? 0) + ($soldes2['68'] ?? 0);
+    $resultat_exploitation = $ebe + $autres_produits_exploit - $autres_charges_exploit;
+    $resultat_financier = $produits_financiers - $charges_financieres;
+    $rcai = $resultat_exploitation + $resultat_financier;
+    $resultat_exceptionnel = -($soldes2['77'] ?? 0) - ($soldes2['67'] ?? 0);
+    $impot_benefices = $soldes3['695'] ?? 0;
+    $resultat_net = $rcai + $resultat_exceptionnel - $impot_benefices;
     
     // --- 1. BFR (Besoin en Fonds de Roulement) ---
     // BFR = Actif Circulant (hors trésorerie) - Passif Circulant (hors trésorerie)
@@ -251,8 +267,7 @@ try {
     $marge_securite = $ca_net - $seuil_rentabilite;
     $indice_securite = $ca_net > 0 ? round(($marge_securite / $ca_net) * 100, 1) : 0;
     
-    // --- 15. EBE et taux ---
-    $ebe = $resultat_net + $dotations + $charges_financieres + $impots_taxes;
+    // --- 15. Taux EBE (EBE déjà calculé dans la cascade SIG) ---
     $taux_ebe = $ca_net > 0 ? round(($ebe / $ca_net) * 100, 2) : 0;
     
     // --- 16. Données de lettrage (exploitation FEC) ---
