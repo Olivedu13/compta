@@ -24,17 +24,31 @@ try {
     $db = new PDO('sqlite:' . $dbPath);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    $stmt = $db->query("
-        SELECT DISTINCT exercice 
-        FROM ecritures 
-        ORDER BY exercice DESC
-    ");
-    $years = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Merge years from both ecritures (backend imports) and reports (frontend imports)
+    $years = [];
+    
+    // From ecritures table
+    $stmt = $db->query("SELECT DISTINCT exercice FROM ecritures ORDER BY exercice DESC");
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $y) {
+        $years[] = (int)$y;
+    }
+    
+    // From reports table (frontend saves year + data_json via api.php)
+    try {
+        $stmt2 = $db->query("SELECT DISTINCT year FROM reports ORDER BY year DESC");
+        foreach ($stmt2->fetchAll(PDO::FETCH_COLUMN) as $y) {
+            if (!in_array((int)$y, $years)) $years[] = (int)$y;
+        }
+    } catch (Exception $e) {
+        // reports table may not exist yet, ignore
+    }
+    
+    rsort($years);
     
     http_response_code(200);
     echo json_encode([
         'success' => true,
-        'data' => array_column($years, 'exercice')
+        'data' => $years
     ], JSON_UNESCAPED_UNICODE);
     
 } catch (Exception $e) {

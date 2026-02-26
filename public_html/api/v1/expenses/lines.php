@@ -47,7 +47,132 @@ try {
     $db = new PDO('sqlite:' . $dbPath);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Build WHERE clause
+    // Check if we have meaningful ecritures for this exercice
+    $checkStmt = $db->prepare("SELECT COUNT(*) FROM ecritures WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'");
+    $checkStmt->execute([$exercice]);
+    $ecrituresCount = (int)$checkStmt->fetchColumn();
+    
+    // Check if report exists with richer data
+    $hasReport = false;
+    try {
+        $rCheck = $db->prepare("SELECT COUNT(*) FROM reports WHERE year = ?");
+        $rCheck->execute([$exercice]);
+        $hasReport = (int)$rCheck->fetchColumn() > 0;
+    } catch (Exception $e) {}
+    
+    // Use ecritures only if we have a meaningful number (>= 10), otherwise fallback to report
+    $useEcritures = $ecrituresCount >= 10 || ($ecrituresCount > 0 && !$hasReport);
+    
+    if (!$useEcritures) {
+        // =============================================
+        // MODE RAPPORT: reconstruct lines from report JSON
+        // =============================================
+        $rStmt = $db->prepare("SELECT data_json FROM reports WHERE year = ?");
+        $rStmt->execute([$exercice]);
+        $rRow = $rStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$rRow) {
+            echo json_encode(['success' => true, 'data' => [
+                'exercice' => $exercice, 'lines' => [],
+                'pagination' => ['page' => 1, 'per_page' => $perPage, 'total' => 0, 'total_pages' => 0],
+                'totals' => ['debit' => 0, 'credit' => 0, 'solde' => 0, 'nb_ecritures' => 0],
+                'filters' => ['journals' => [], 'account_prefixes' => []],
+                'source' => 'none'
+            ]], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        
+        $report = json_decode($rRow['data_json'], true);
+        $details = $report['details'] ?? [];
+        
+        // Extract all class 6 accounts from report details
+        $allLines = [];
+        $expenseSections = ['purchases', 'external', 'personnel', 'debt', 'taxes', 'management'];
+        foreach ($expenseSections as $section) {
+            foreach ($details[$section] ?? [] as $item) {
+                $code = $item['code'] ?? '';
+                if (substr($code, 0, 1) === '6') {
+                    $solde = (float)($item['solde'] ?? 0);
+                    $allLines[] = [
+                        'date' => $exercice . '-12-31',
+                        'journal' => 'FEC', 'journal_lib' => 'Import FEC',
+                        'num' => '', 'compte' => $code,
+                        'compte_lib' => $item['libelle'] ?? '',
+                        'aux_num' => '', 'aux_lib' => '',
+                        'piece' => '', 'piece_date' => '',
+                        'libelle' => $item['libelle'] ?? '',
+                        'debit' => $solde > 0 ? round($solde, 2) : 0,
+                        'credit' => $solde < 0 ? round(abs($solde), 2) : 0,
+                        'montant' => round($solde, 2),
+                        'lettrage' => '',
+                    ];
+                }
+            }
+        }
+        
+        // Apply filters
+        if ($compteFilter) {
+            $allLines = array_values(array_filter($allLines, function($l) use ($compteFilter) {
+                return strpos($l['compte'], $compteFilter) === 0;
+            }));
+        }
+        if ($searchFilter) {
+            $search = strtolower($searchFilter);
+            $allLines = array_values(array_filter($allLines, function($l) use ($search) {
+                return strpos(strtolower($l['libelle']), $search) !== false
+                    || strpos(strtolower($l['compte_lib']), $search) !== false
+                    || strpos(strtolower($l['compte']), $search) !== false;
+            }));
+        }
+        
+        // Sort
+        usort($allLines, function($a, $b) use ($sortField, $sortOrder) {
+            $map = ['date' => 'date', 'compte' => 'compte', 'montant' => 'montant', 'libelle' => 'libelle'];
+            $key = $map[$sortField] ?? 'montant';
+            $cmp = $key === 'montant' ? ($a[$key] <=> $b[$key]) : strcmp($a[$key], $b[$key]);
+            return $sortOrder === 'ASC' ? $cmp : -$cmp;
+        });
+        
+        $total = count($allLines);
+        $totalDebit = array_sum(array_column($allLines, 'debit'));
+        $totalCredit = array_sum(array_column($allLines, 'credit'));
+        
+        // Paginate
+        $offset = ($page - 1) * $perPage;
+        $pagedLines = array_slice($allLines, $offset, $perPage);
+        
+        // Account prefixes
+        $prefixes = [];
+        foreach ($allLines as $l) {
+            $p = substr($l['compte'], 0, 2);
+            if (!isset($prefixes[$p])) $prefixes[$p] = ['prefix' => $p, 'label' => $l['compte_lib'], 'nb' => 0];
+            $prefixes[$p]['nb']++;
+        }
+        ksort($prefixes);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'exercice' => $exercice, 'lines' => $pagedLines,
+                'pagination' => [
+                    'page' => $page, 'per_page' => $perPage,
+                    'total' => $total, 'total_pages' => (int)ceil($total / $perPage),
+                ],
+                'totals' => [
+                    'debit' => round($totalDebit, 2), 'credit' => round($totalCredit, 2),
+                    'solde' => round($totalDebit - $totalCredit, 2), 'nb_ecritures' => $total,
+                ],
+                'filters' => ['journals' => [], 'account_prefixes' => array_values($prefixes)],
+                'source' => 'report',
+                'note' => 'Données agrégées par compte — le détail ligne par ligne n\'est pas disponible pour cet exercice.'
+            ]
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    
+    // =============================================
+    // MODE ECRITURES: full detail from ecritures table
+    // =============================================
     $where = "WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'";
     $params = [$exercice];
     
