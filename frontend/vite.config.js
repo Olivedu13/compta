@@ -17,7 +17,9 @@ export default defineConfig({
   build: {
     outDir: '../public_html/assets',
     assetsDir: '.',
-    emptyOutDir: true,
+    emptyOutDir: false,
+    sourcemap: true,
+    minify: false,
     rollupOptions: {
       input: './src/index.jsx',
       output: {

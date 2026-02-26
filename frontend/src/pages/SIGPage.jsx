@@ -149,7 +149,7 @@ export default function SIGPage() {
   // Préparer données pour graphique cascade
   const cascadeData = sig?.cascade ? Object.entries(sig?.cascade || {}).map(([key, val]) => ({
     name: key.replace(/_/g, '\n'),
-    value: val.formatted?.valeur_brute || 0,
+    value: val.valeur || 0,
     color: val.formatted?.couleur || '#999'
   })) : [];
 
@@ -211,8 +211,8 @@ export default function SIGPage() {
                   <Grid item xs={12} sm={6} md={4} lg={3} key={key}>
                     <SIGCascadeCard
                       label={key.replace(/_/g, ' ').toUpperCase()}
-                      value={formatted.valeur_brute || 0}
-                      description={formatted.description || ''}
+                      value={item.valeur || 0}
+                      description={item.description || ''}
                       isPositive={formatted.est_positif || false}
                       color={formatted.couleur || '#999'}
                     />
@@ -304,10 +304,10 @@ export default function SIGPage() {
                           align="right"
                           sx={{ 
                             fontWeight: 'bold',
-                            color: getColorForSIG(formatted.valeur_brute)
+                            color: getColorForSIG(item.valeur)
                           }}
                         >
-                          {formatCurrency(formatted.valeur_brute || 0)}
+                          {formatCurrency(item.valeur || 0)}
                         </TableCell>
                         <TableCell align="center">
                           <Chip
