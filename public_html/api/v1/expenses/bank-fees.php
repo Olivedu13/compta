@@ -40,13 +40,28 @@ try {
     
     $whereBase = "WHERE exercice = ? AND ($placeholders)";
     
-    // 1. Total global
+    // === Condition d'exclusion des TOTAUX BANCAIRES ===
+    // Les banques enregistrent des lignes récapitulatives (arrêtés de compte,
+    // résultats trimestriels) qui REPRENNENT les frais déjà comptés en détail.
+    // On les exclut de tous les calculs pour éviter le double comptage.
+    $excludePatterns = "
+        AND NOT (
+            UPPER(libelle_ecriture) LIKE '%ARRET%'
+            OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+            OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+            OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+            OR UPPER(libelle_ecriture) LIKE 'INT ARRET%'
+        )
+    ";
+    $whereClean = $whereBase . $excludePatterns;
+    
+    // 1. Total global (HORS totaux bancaires)
     $totStmt = $db->prepare("
         SELECT 
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb_ecritures
-        FROM ecritures $whereBase
+        FROM ecritures $whereClean
     ");
     $totStmt->execute([$exercice]);
     $totals = $totStmt->fetch(PDO::FETCH_ASSOC);
@@ -81,7 +96,7 @@ try {
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb
-        FROM ecritures $whereBase
+        FROM ecritures $whereClean
         GROUP BY compte_num
         ORDER BY (SUM(CAST(debit AS REAL)) - SUM(CAST(credit AS REAL))) DESC
     ");
@@ -115,7 +130,7 @@ try {
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb
-        FROM ecritures $whereBase
+        FROM ecritures $whereClean
         GROUP BY SUBSTR(compte_num, 1, 3)
         ORDER BY (SUM(CAST(debit AS REAL)) - SUM(CAST(credit AS REAL))) DESC
     ");
@@ -141,7 +156,7 @@ try {
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb
-        FROM ecritures $whereBase
+        FROM ecritures $whereClean
         GROUP BY SUBSTR(ecriture_date, 1, 7)
         ORDER BY mois
     ");
@@ -165,7 +180,7 @@ try {
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb
-        FROM ecritures $whereBase
+        FROM ecritures $whereClean
         GROUP BY journal_code
         ORDER BY (SUM(CAST(debit AS REAL)) - SUM(CAST(credit AS REAL))) DESC
     ");
@@ -183,9 +198,8 @@ try {
         ];
     }
     
-    // 6. Séparer les "RESULTAT ARRETE COMPTE" / agios des frais purs
-    //    Les arrêtés trimestriels sont des INTÉRÊTS DÉBITEURS, pas des frais de service.
-    //    On les isole pour éviter le mélange dans les totaux affichés.
+    // 6. Récupérer les lignes de TOTAUX BANCAIRES exclues (pour affichage info)
+    //    Ce sont les lignes qui font double emploi avec le détail.
     $arreteStmt = $db->prepare("
         SELECT 
             compte_num,
@@ -197,7 +211,10 @@ try {
             CAST(credit AS REAL) as credit
         FROM ecritures $whereBase
           AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
-               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%')
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')
         ORDER BY ecriture_date
     ");
     $arreteStmt->execute([$exercice]);
@@ -220,17 +237,16 @@ try {
         ];
     }
     $totalArrete = round($totalArrete, 2);
-    $totalFraisPurs = round($totalSolde - $totalArrete, 2);
 
     echo json_encode([
         'success' => true,
         'data' => [
             'exercice' => $exercice,
             'total' => $totalSolde,
-            'total_frais_purs' => $totalFraisPurs,
             'total_arrete_compte' => $totalArrete,
+            'total_brut' => round($totalSolde + $totalArrete, 2),
             'nb_ecritures' => $nbEcritures,
-            'cout_moyen_mensuel' => round($totalFraisPurs / 12, 2),
+            'cout_moyen_mensuel' => round($totalSolde / max(12, 1), 2),
             'par_type' => $parType,
             'par_compte' => $parCompte,
             'par_mois' => $parMois,
@@ -239,7 +255,7 @@ try {
                 'total' => $totalArrete,
                 'nb' => count($arreteDetail),
                 'detail' => $arreteDetail,
-                'note' => 'Intérêts débiteurs trimestriels (arrêtés de compte) — même nature que 661. Séparés des frais de service purs.',
+                'note' => 'Totaux trimestriels calculés par les banques (arrêtés de compte, intérêts/frais). Exclus car ils font double emploi avec les écritures détaillées.',
             ],
         ],
         'source' => 'ecritures'
