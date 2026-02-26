@@ -183,17 +183,64 @@ try {
         ];
     }
     
+    // 6. Séparer les "RESULTAT ARRETE COMPTE" / agios des frais purs
+    //    Les arrêtés trimestriels sont des INTÉRÊTS DÉBITEURS, pas des frais de service.
+    //    On les isole pour éviter le mélange dans les totaux affichés.
+    $arreteStmt = $db->prepare("
+        SELECT 
+            compte_num,
+            compte_lib,
+            journal_code,
+            ecriture_date,
+            libelle_ecriture,
+            CAST(debit AS REAL) as debit,
+            CAST(credit AS REAL) as credit
+        FROM ecritures $whereBase
+          AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%')
+        ORDER BY ecriture_date
+    ");
+    $arreteStmt->execute([$exercice]);
+    $arreteLignes = $arreteStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $totalArrete = 0;
+    $arreteDetail = [];
+    foreach ($arreteLignes as $row) {
+        $d = round((float)$row['debit'], 2);
+        $c = round((float)$row['credit'], 2);
+        $solde = round($d - $c, 2);
+        $totalArrete += $solde;
+        $arreteDetail[] = [
+            'date' => $row['ecriture_date'],
+            'journal' => $row['journal_code'],
+            'compte' => $row['compte_num'],
+            'compte_lib' => $row['compte_lib'],
+            'libelle' => $row['libelle_ecriture'],
+            'montant' => $solde,
+        ];
+    }
+    $totalArrete = round($totalArrete, 2);
+    $totalFraisPurs = round($totalSolde - $totalArrete, 2);
+
     echo json_encode([
         'success' => true,
         'data' => [
             'exercice' => $exercice,
             'total' => $totalSolde,
+            'total_frais_purs' => $totalFraisPurs,
+            'total_arrete_compte' => $totalArrete,
             'nb_ecritures' => $nbEcritures,
-            'cout_moyen_mensuel' => round($totalSolde / 12, 2),
+            'cout_moyen_mensuel' => round($totalFraisPurs / 12, 2),
             'par_type' => $parType,
             'par_compte' => $parCompte,
             'par_mois' => $parMois,
             'par_banque' => $parBanque,
+            'arrete_compte' => [
+                'total' => $totalArrete,
+                'nb' => count($arreteDetail),
+                'detail' => $arreteDetail,
+                'note' => 'Intérêts débiteurs trimestriels (arrêtés de compte) — même nature que 661. Séparés des frais de service purs.',
+            ],
         ],
         'source' => 'ecritures'
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
