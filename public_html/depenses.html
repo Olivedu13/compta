@@ -1363,10 +1363,10 @@
         const max = Math.max(...banques.map(b => b.montant), 1);
         container.innerHTML = banques.map((b, i) => `
             <div class="flex items-center gap-2">
-                <div class="w-16 shrink-0"><span class="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">${b.journal || '?'}</span></div>
+                <div class="w-16 shrink-0"><span class="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">${b.code || '?'}</span></div>
                 <div class="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bar-animate" style="width:${(b.montant/max*100).toFixed(1)}%;background:${BANK_COLORS[i % BANK_COLORS.length]}"></div></div>
                 <span class="text-[10px] font-black text-slate-700 w-16 text-right shrink-0">${EUR0(b.montant)}</span>
-                <span class="text-[9px] text-slate-400 w-8 text-right shrink-0">${b.nb}éc.</span>
+                <span class="text-[9px] text-slate-400 w-10 text-right shrink-0">${b.nb}éc.</span>
             </div>`).join('');
     }
 
