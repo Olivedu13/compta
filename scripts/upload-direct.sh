@@ -1,8 +1,8 @@
 #!/bin/bash
+set -e
 
 # ========================================
-# Upload direct SFTP vers Ionos
-# compta.sarlatc.com → SFTP root = /compta (webroot)
+# Build + Deploy SFTP vers compta.sarlatc.com
 # ========================================
 
 SFTP_HOST="home210120109.1and1-data.host"
@@ -14,24 +14,36 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-echo -e "${YELLOW}=== Upload SFTP Direct vers compta.sarlatc.com ===${NC}"
-echo -e "Hôte  : ${CYAN}$SFTP_HOST${NC}"
-echo -e "SFTP root = /compta (webroot)"
+echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}║   Build & Deploy → compta.sarlatc.com    ║${NC}"
+echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
-# Build frontend si nécessaire
-if [ ! -f "$LOCAL/public_html/assets/index.js" ]; then
-    echo -e "${YELLOW}Build frontend...${NC}"
-    cd "$LOCAL/frontend" && npm run build
-    cd "$LOCAL"
+# ─── 1. INSTALL DEPS ───
+echo -e "${YELLOW}[1/4] Installation des dépendances...${NC}"
+cd "$LOCAL/frontend"
+if [[ ! -d node_modules ]]; then
+    npm ci --silent 2>&1
+else
+    echo "  → node_modules déjà présent"
 fi
 
-# Batch SFTP — Le SFTP atterrit dans /compta qui EST le webroot
-SFTP_BATCH="/tmp/sftp_upload_$$.batch"
+# ─── 2. BUILD FRONTEND ───
+echo -e "${YELLOW}[2/4] Build du frontend (Vite + React)...${NC}"
+npm run build 2>&1
+BUILD_SIZE=$(du -h "$LOCAL/public_html/assets/index.js" | cut -f1)
+echo -e "  → ${GREEN}Build OK${NC} — index.js: ${CYAN}${BUILD_SIZE}${NC}"
+echo ""
+
+# ─── 3. UPLOAD SFTP ───
+echo -e "${YELLOW}[3/4] Upload SFTP...${NC}"
+
+SFTP_BATCH="/tmp/sftp_deploy_$$.batch"
 cat > "$SFTP_BATCH" << 'EOF'
-# ─── Structure API ───
+# ─── Structures ───
 -mkdir api
 -mkdir api/v1
 -mkdir api/v1/accounting
@@ -43,36 +55,35 @@ cat > "$SFTP_BATCH" << 'EOF'
 -mkdir api/v1/years
 -mkdir api/v1/expenses
 -mkdir api/v1/ai
+-mkdir api/v1/fec
 -mkdir api/auth
-
-# ─── Structure Backend ───
 -mkdir backend
 -mkdir backend/config
 -mkdir backend/services
 -mkdir backend/validators
 -mkdir backend/logs
-
-# ─── Structure Assets ───
 -mkdir assets
 
-# ═══════════════════════════════════════
-# FICHIERS RACINE (webroot)
-# ═══════════════════════════════════════
+# ─── Nettoyage anciens assets ───
+-rm assets/index-B0cMD3EL.js
+-rm assets/index-Br9KC5Kv.css
+-rm assets/index.js.map
+-rm metadata.json
+
+# ─── Fichiers racine ───
 put /workspaces/compta/public_html/.htaccess .htaccess
 put /workspaces/compta/public_html/.user.ini .user.ini
 put /workspaces/compta/public_html/index.html index.html
 put /workspaces/compta/public_html/bootstrap.php bootstrap.php
+put /workspaces/compta/public_html/api.php api.php
+put /workspaces/compta/public_html/depenses.html depenses.html
 
-# ═══════════════════════════════════════
-# API - Routing & Import
-# ═══════════════════════════════════════
+# ─── API Routing ───
 put /workspaces/compta/public_html/api/index.php api/index.php
 put /workspaces/compta/public_html/api/simple-import.php api/simple-import.php
 put /workspaces/compta/public_html/api/v1/index.php api/v1/index.php
 
-# ═══════════════════════════════════════
-# API v1 - Tous les endpoints
-# ═══════════════════════════════════════
+# ─── API v1 endpoints ───
 put /workspaces/compta/public_html/api/v1/sig/simple.php api/v1/sig/simple.php
 put /workspaces/compta/public_html/api/v1/accounting/sig.php api/v1/accounting/sig.php
 put /workspaces/compta/public_html/api/v1/accounting/accounts.php api/v1/accounting/accounts.php
@@ -91,21 +102,16 @@ put /workspaces/compta/public_html/api/v1/analytics/advanced.php api/v1/analytic
 put /workspaces/compta/public_html/api/v1/analytics/analysis.php api/v1/analytics/analysis.php
 put /workspaces/compta/public_html/api/v1/analytics/kpis.php api/v1/analytics/kpis.php
 put /workspaces/compta/public_html/api/v1/years/list.php api/v1/years/list.php
--mkdir api/v1/fec
 put /workspaces/compta/public_html/api/v1/fec/upload.php api/v1/fec/upload.php
 
-# ═══════════════════════════════════════
-# API Auth
-# ═══════════════════════════════════════
+# ─── API Auth ───
 put /workspaces/compta/public_html/api/auth/verify.php api/auth/verify.php
 put /workspaces/compta/public_html/api/auth/setup_password.php api/auth/setup_password.php
 put /workspaces/compta/public_html/api/auth/set_pwd.php api/auth/set_pwd.php
 put /workspaces/compta/public_html/api/auth/login.php api/auth/login.php
 put /workspaces/compta/public_html/api/auth/check_pwd.php api/auth/check_pwd.php
 
-# ═══════════════════════════════════════
-# Backend complet
-# ═══════════════════════════════════════
+# ─── Backend ───
 put /workspaces/compta/backend/bootstrap.php backend/bootstrap.php
 put /workspaces/compta/backend/config/Database.php backend/config/Database.php
 put /workspaces/compta/backend/config/Router.php backend/config/Router.php
@@ -121,57 +127,50 @@ put /workspaces/compta/backend/services/FecAnalyzer.php backend/services/FecAnal
 put /workspaces/compta/backend/services/CashflowAnalyzer.php backend/services/CashflowAnalyzer.php
 put /workspaces/compta/backend/validators/FECValidator.php backend/validators/FECValidator.php
 
-# ═══════════════════════════════════════
-# Frontend build (assets)
-# ═══════════════════════════════════════
+# ─── Assets (build frontend) ───
 put /workspaces/compta/public_html/assets/index.js assets/index.js
 put /workspaces/compta/public_html/assets/responsive.css assets/responsive.css
-
-# ═══════════════════════════════════════
-# Pages standalone
-# ═══════════════════════════════════════
-put /workspaces/compta/public_html/depenses.html depenses.html
-
-# ═══════════════════════════════════════
-# Base de données (NE PAS écraser le serveur)
-# ═══════════════════════════════════════
-# put /workspaces/compta/compta.db compta.db
-
-# ═══════════════════════════════════════
-# Sécurité : remplacer api.php qui fuite les clés API
-# ═══════════════════════════════════════
-put /workspaces/compta/public_html/api.php api.php
-
-# ═══════════════════════════════════════
-# Nettoyage fichiers obsolètes/dangereux
-# ═══════════════════════════════════════
--rm metadata.json
 
 quit
 EOF
 
-echo -e "${YELLOW}Upload en cours...${NC}"
-
-if command -v sshpass &> /dev/null; then
-    sshpass -p "$SFTP_PASS" sftp -oBatchMode=no -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" < "$SFTP_BATCH" 2>&1
-    RESULT=$?
-else
-    echo -e "${RED}sshpass non disponible — installation...${NC}"
+# Installer sshpass si absent
+if ! command -v sshpass &> /dev/null; then
+    echo -e "  → Installation de sshpass..."
     sudo apt-get install -y sshpass > /dev/null 2>&1
-    sshpass -p "$SFTP_PASS" sftp -oBatchMode=no -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" < "$SFTP_BATCH" 2>&1
-    RESULT=$?
 fi
 
+sshpass -p "$SFTP_PASS" sftp -oBatchMode=no -o StrictHostKeyChecking=no "$SFTP_USER@$SFTP_HOST" < "$SFTP_BATCH" 2>&1
+RESULT=$?
 rm -f "$SFTP_BATCH"
 
-if [ $RESULT -eq 0 ]; then
-    echo ""
-    echo -e "${GREEN}✓ Upload réussi!${NC}"
-    echo ""
-    echo -e "${CYAN}Vérification des endpoints :${NC}"
-    echo "  curl https://compta.sarlatc.com/api/v1/years/list.php"
-    echo "  curl https://compta.sarlatc.com/api/v1/sig/simple.php?exercice=2024"
-    echo "  curl https://compta.sarlatc.com/api/v1/kpis/financial.php?exercice=2024"
-else
-    echo -e "\n${RED}✗ Erreur SFTP: code $RESULT${NC}"
+if [[ $RESULT -ne 0 ]]; then
+    echo -e "\n${RED}✗ Erreur SFTP (code $RESULT)${NC}"
+    exit 1
 fi
+
+echo -e "  → ${GREEN}Upload terminé${NC}"
+echo ""
+
+# ─── 4. VÉRIFICATION ───
+echo -e "${YELLOW}[4/4] Vérification production...${NC}"
+
+check_url() {
+    local label="$1" url="$2"
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null)
+    if [[ "$STATUS" == "200" ]]; then
+        echo -e "  ${GREEN}✓${NC} $label → HTTP $STATUS"
+    else
+        echo -e "  ${RED}✗${NC} $label → HTTP $STATUS"
+    fi
+}
+
+check_url "index.html" "https://compta.sarlatc.com/"
+check_url "index.js"   "https://compta.sarlatc.com/assets/index.js"
+check_url "API years"  "https://compta.sarlatc.com/api/v1/years/list.php"
+check_url "API SIG"    "https://compta.sarlatc.com/api/v1/sig/simple.php?exercice=2024"
+check_url "API KPIs"   "https://compta.sarlatc.com/api/v1/kpis/financial.php?exercice=2024"
+
+echo ""
+echo -e "${GREEN}${BOLD}✓ Déploiement terminé !${NC}"
+echo -e "  ${CYAN}https://compta.sarlatc.com${NC}"

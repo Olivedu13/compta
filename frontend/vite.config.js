@@ -18,14 +18,14 @@ export default defineConfig({
     outDir: '../public_html/assets',
     assetsDir: '.',
     emptyOutDir: false,
-    sourcemap: true,
-    minify: false,
+    sourcemap: false,
+    minify: 'terser',
     rollupOptions: {
       input: './src/index.jsx',
       output: {
         entryFileNames: 'index.js',
-        chunkFileNames: '[name].[hash].js',
-        assetFileNames: '[name].[hash][extname]'
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name][extname]'
       }
     }
   },
