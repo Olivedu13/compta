@@ -243,6 +243,25 @@
                 <div id="detailContent" class="hidden">
                     <div id="detailNote" class="hidden mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-700 font-bold"><i class="fas fa-info-circle mr-1"></i><span id="detailNoteText"></span></div>
                     <div id="detailStats" class="grid grid-cols-3 gap-3 mb-4"></div>
+                    <!-- Filtres modal détail -->
+                    <div class="flex items-center gap-2 flex-wrap mb-3">
+                        <div class="relative flex-1 min-w-[180px]">
+                            <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                            <input id="detailSearch" type="text" placeholder="Rechercher (libellé, compte, tiers…)" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[11px] font-bold outline-none focus:border-blue-500 transition-colors">
+                        </div>
+                        <select id="detailSousCompte" class="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold outline-none focus:border-blue-500">
+                            <option value="">Tous sous-comptes</option>
+                        </select>
+                        <select id="detailSort" class="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold outline-none focus:border-blue-500">
+                            <option value="montant-desc">Montant ↓</option>
+                            <option value="montant-asc">Montant ↑</option>
+                            <option value="date-desc">Date ↓</option>
+                            <option value="date-asc">Date ↑</option>
+                            <option value="libelle-asc">Libellé A→Z</option>
+                            <option value="libelle-desc">Libellé Z→A</option>
+                            <option value="compte-asc">Compte ↑</option>
+                        </select>
+                    </div>
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
                         <table class="w-full text-left">
                             <thead><tr class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
@@ -502,20 +521,28 @@
     }
 
     // ── Show category detail: modal with filtered lines ──
-    let detailState = { code: '', label: '', page: 1 };
+    let detailState = { code: '', label: '', page: 1, search: '', sort: 'montant', order: 'desc', sousCompte: '' };
+    let detailSearchTimeout = null;
     const CAT_LABELS = { '60':'Achats (matières, marchandises)','61':'Services extérieurs','62':'Autres services extérieurs','63':'Impôts, taxes et versements','64':'Charges de personnel','65':'Autres charges de gestion','66':'Charges financières','67':'Charges exceptionnelles','68':'Dotations amort./provisions' };
 
     function showCategoryDetail(code) {
         detailState.code = String(code);
         detailState.label = CAT_LABELS[detailState.code] || `Classe ${code}`;
         detailState.page = 1;
+        detailState.search = '';
+        detailState.sousCompte = '';
+        detailState.sort = 'montant';
+        detailState.order = 'desc';
         document.getElementById('detailTitle').innerHTML = `<i class="fas fa-search-plus mr-1.5 text-blue-500"></i>Détail : ${detailState.label}`;
         document.getElementById('detailSubtitle').textContent = `Classe ${code} · Exercice ${document.getElementById('yearSelect').value}`;
+        document.getElementById('detailSearch').value = '';
+        document.getElementById('detailSort').value = 'montant-desc';
+        document.getElementById('detailSousCompte').innerHTML = '<option value="">Tous sous-comptes</option>';
         document.getElementById('detailLoading').classList.remove('hidden');
         document.getElementById('detailContent').classList.add('hidden');
         document.getElementById('detailModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        loadDetailPage();
+        loadDetailPage(true);
     }
 
     function closeDetailModal() {
@@ -523,16 +550,58 @@
         document.body.style.overflow = '';
     }
 
-    async function loadDetailPage() {
+    // Wire up detail modal filters
+    (function initDetailFilters() {
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('detailSearch').addEventListener('input', e => {
+                clearTimeout(detailSearchTimeout);
+                detailSearchTimeout = setTimeout(() => {
+                    detailState.search = e.target.value;
+                    detailState.page = 1;
+                    loadDetailPage();
+                }, 300);
+            });
+            document.getElementById('detailSort').addEventListener('change', e => {
+                const [s, o] = e.target.value.split('-');
+                detailState.sort = s;
+                detailState.order = o;
+                detailState.page = 1;
+                loadDetailPage();
+            });
+            document.getElementById('detailSousCompte').addEventListener('change', e => {
+                detailState.sousCompte = e.target.value;
+                detailState.page = 1;
+                loadDetailPage();
+            });
+        });
+    })();
+
+    async function loadDetailPage(loadSousComptes = false) {
         const year = document.getElementById('yearSelect').value;
+        const compteFilter = detailState.sousCompte || detailState.code;
         const params = new URLSearchParams({
             exercice: year, page: detailState.page, per_page: 200,
-            compte: detailState.code, sort: 'montant', order: 'desc'
+            compte: compteFilter, sort: detailState.sort, order: detailState.order
         });
+        if (detailState.search) params.set('search', detailState.search);
         try {
             const resp = await fetch(`${API}/expenses/lines.php?${params}`);
             const json = await resp.json();
             if (!json.success) throw new Error(json.error);
+            // Populate sub-accounts selector from filters
+            if (loadSousComptes && json.data.filters?.account_prefixes) {
+                const sel = document.getElementById('detailSousCompte');
+                sel.innerHTML = '<option value="">Tous sous-comptes</option>';
+                // Fetch all accounts (unfiltered) to populate sub-account filter
+                const allParams = new URLSearchParams({ exercice: year, per_page: 1, compte: detailState.code });
+                const allResp = await fetch(`${API}/expenses/lines.php?${allParams}`);
+                const allJson = await allResp.json();
+                if (allJson.success && allJson.data.filters?.account_prefixes) {
+                    allJson.data.filters.account_prefixes.forEach(a => {
+                        sel.add(new Option(`${a.prefix} — ${a.label?.substring(0,30) || ''} (${a.nb})`, a.prefix));
+                    });
+                }
+            }
             renderDetailModal(json.data, json.data.source || 'ecritures');
         } catch (e) {
             document.getElementById('detailLoading').classList.add('hidden');
@@ -550,7 +619,7 @@
         const noteEl = document.getElementById('detailNote');
         if (source === 'report') {
             noteEl.classList.remove('hidden');
-            document.getElementById('detailNoteText').textContent = 'Données agrégées par compte (import FEC frontend). Importez votre fichier FEC via le bouton "Importer FEC" pour voir chaque écriture individuelle (nom salarié, facture, etc.).';
+            document.getElementById('detailNoteText').textContent = 'Vue agrégée par compte comptable. Pour le détail ligne par ligne (nom salarié, facture…), un import FEC est disponible depuis le header.';
         } else {
             noteEl.classList.add('hidden');
         }
