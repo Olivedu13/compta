@@ -19,8 +19,11 @@ const COPILOT_MODELS = [
   { name: 'gpt-4o-mini', displayName: 'GitHub Copilot (GPT-4o-mini)' },
 ];
 
-// Clés API stockées en mémoire
-let apiKeys = { gemini: '', copilot: '' };
+// Clés API stockées en mémoire (env > settings DB > saisie manuelle)
+let apiKeys = {
+  gemini: import.meta.env.VITE_GEMINI_API_KEY || '',
+  copilot: import.meta.env.VITE_COPILOT_API_KEY || '',
+};
 
 export const setApiKeys = (keys) => {
   if (keys.gemini) apiKeys.gemini = keys.gemini;

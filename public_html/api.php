@@ -87,12 +87,18 @@ try {
             $reports[] = ['data_json' => $row['data_json']];
         }
         
-        // Sécurité : ne jamais exposer les clés API en GET
-        // Le frontend les stocke en localStorage, pas besoin de les renvoyer
+        // Renvoyer les clés API (protégées par le token d'auth)
+        $geminiKey = '';
+        $copilotKey = '';
+        foreach ($settings as $k => $v) {
+            if ($k === 'api_key_gemini') $geminiKey = $v;
+            if ($k === 'api_key_copilot') $copilotKey = $v;
+        }
+        
         echo json_encode([
             'settings' => [
-                'api_key_gemini' => '',
-                'api_key_copilot' => ''
+                'api_key_gemini' => $geminiKey,
+                'api_key_copilot' => $copilotKey
             ],
             'reports' => $reports
         ]);
