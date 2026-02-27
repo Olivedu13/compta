@@ -5,7 +5,7 @@ import ExecSummaryDashboard from './ExecSummaryDashboard';
 /**
  * AIAdvisorView - Vue d'audit IA Stratégique (Gemini / Copilot)
  */
-const AIAdvisorView = ({ data, previousData, onOpenSettings }) => {
+const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summary');
@@ -15,6 +15,7 @@ const AIAdvisorView = ({ data, previousData, onOpenSettings }) => {
     try {
       const res = await analyzeWithAI(data, previousData);
       setResult(res);
+      if (onAiResult) onAiResult(res);
     } catch {
       setResult({
         text: `## Erreur\n\nUne erreur est survenue lors de l'analyse.`,

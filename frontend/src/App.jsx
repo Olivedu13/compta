@@ -6,6 +6,7 @@ import ComparisonView from './components/ComparisonView';
 import AIAdvisorView from './components/AIAdvisorView';
 import SettingsDialog from './components/SettingsDialog';
 import NavButton from './components/NavButton';
+import PrintableReport from './components/PrintableReport';
 
 const PASSWORD_HASH = '6e7a635139c3a2fe2de8ed9d14a8a5691650ff0680c4afd27b5aebd6893b2ac8';
 
@@ -25,6 +26,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showConsole, setShowConsole] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
   const consoleEndRef = useRef(null);
   const API_URL = './api.php';
 
@@ -327,9 +329,26 @@ const App = () => {
                 ]
               }
               onOpenSettings={() => setShowSettings(true)}
+              onAiResult={setAiResult}
             />
           )}
         </main>
+
+        {/* Print Module */}
+        {state.isLoaded && (
+          <PrintableReport
+            data={state.years[state.currentYear]}
+            previousData={
+              state.years[
+                Object.keys(state.years)
+                  .map(Number)
+                  .sort((a, b) => b - a)
+                  .find((y) => y < state.currentYear) || 0
+              ]
+            }
+            aiResult={aiResult}
+          />
+        )}
 
         {/* Settings Dialog */}
         {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
