@@ -116,22 +116,29 @@ try {
     // 2. PRODUCTION DE L'EXERCICE = 70 + 71 + 72
     $production = -(($soldes2['70'] ?? 0) + ($soldes2['71'] ?? 0) + ($soldes2['72'] ?? 0));
     
-    // 3. CONSOMMATIONS MATIÈRES = 601 + 602 ± 603
+    // 3. CONSOMMATION EN PROVENANCE DE TIERS — Achats
+    // Achats de matières premières et fournitures (601+602±603)
     $achats_mp = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['603'] ?? 0);
+    // Autres achats externes (604=études/prestations, 605=matériel, 606=non stocké, 608=frais accessoires, 609=RRR)
+    $autres_achats_ext = ($soldes3['604'] ?? 0) + ($soldes3['605'] ?? 0) + ($soldes3['606'] ?? 0)
+                       + ($soldes3['608'] ?? 0) + ($soldes3['609'] ?? 0);
+    // Achats de marchandises (607) — pour marge commerciale
     $achats_marchandises = $soldes3['607'] ?? 0;
-    $variation_stock = $soldes3['603'] ?? 0;
     
-    // 4. MARGE COMMERCIALE
+    // 4. MARGE COMMERCIALE = Ventes marchandises (707) - Achats marchandises (607)
+    // Note: 603 = variation stock matières premières (60310000), PAS marchandises
+    // La variation stock marchandises serait en 6037 (absent dans cette bijouterie)
     $ventes_marchandises = -($soldes3['707'] ?? 0);
-    $marge_commerciale = $ventes_marchandises - $achats_marchandises + $variation_stock;
+    $marge_commerciale = $ventes_marchandises - $achats_marchandises;
     
-    // 5. MARGE DE PRODUCTION
+    // 5. MARGE DE PRODUCTION = Production - Consommation matières
     $marge_production = $production - $achats_mp;
     
-    // 6. VALEUR AJOUTÉE = Marge Prod. - Services ext. (61+62 HORS 627)
+    // 6. VALEUR AJOUTÉE = Marge Comm. + Marge Prod. - Autres achats ext. - Services ext.
+    // Conforme PCG: VA = MC + Prod - Consommation en provenance de tiers
     // 627 (frais bancaires) reclassé en charges financières
     $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0) - $frais_bancaires_627;
-    $valeur_ajoutee = $marge_production - $services_ext;
+    $valeur_ajoutee = $marge_commerciale + $marge_production - $autres_achats_ext - $services_ext;
     
     // 7. EBE (EBITDA) = VA + Subventions (74) - Impôts (63) - Personnel (64)
     $subventions = -($soldes2['74'] ?? 0);
@@ -190,15 +197,20 @@ try {
         ['name' => 'Production', 'value' => round($production, 2), 'color' => '#42a5f5'],
         ['name' => '- Conso. Matières', 'value' => round(-$achats_mp, 2), 'color' => '#ef5350'],
         ['name' => '= Marge Prod.', 'value' => round($marge_production, 2), 'color' => '#66bb6a'],
+        ['name' => '- Autres achats ext.', 'value' => round(-$autres_achats_ext, 2), 'color' => '#ef5350'],
         ['name' => '- Services Ext.', 'value' => round(-$services_ext, 2), 'color' => '#ef5350'],
         ['name' => '= Valeur Ajoutée', 'value' => round($valeur_ajoutee, 2), 'color' => '#4caf50'],
         ['name' => '- Personnel', 'value' => round(-$charges_personnel, 2), 'color' => '#ff7043'],
         ['name' => '- Impôts & Taxes', 'value' => round(-$impots_taxes, 2), 'color' => '#ff7043'],
+        ['name' => '+ Subventions', 'value' => round($subventions, 2), 'color' => '#66bb6a'],
         ['name' => '= EBE (EBITDA)', 'value' => round($ebe, 2), 'color' => '#26a69a'],
-        ['name' => '- Dotations', 'value' => round(-$autres_charges_exploit, 2), 'color' => '#ff7043'],
+        ['name' => '+ Reprises & Produits', 'value' => round($autres_produits_exploit, 2), 'color' => '#66bb6a'],
+        ['name' => '- Dotations & Ch. div.', 'value' => round(-$autres_charges_exploit, 2), 'color' => '#ff7043'],
         ['name' => '= Rés. Exploit.', 'value' => round($resultat_exploitation, 2), 'color' => '#5c6bc0'],
         ['name' => '+/- Rés. Financier', 'value' => round($resultat_financier, 2), 'color' => $resultat_financier >= 0 ? '#66bb6a' : '#ef5350'],
         ['name' => '= RCAI', 'value' => round($rcai, 2), 'color' => '#7e57c2'],
+        ['name' => '+/- Rés. Exceptionnel', 'value' => round($resultat_exceptionnel, 2), 'color' => $resultat_exceptionnel >= 0 ? '#66bb6a' : '#ef5350'],
+        ['name' => '- IS', 'value' => round(-$impot_benefices, 2), 'color' => '#ff7043'],
         ['name' => '= Résultat Net', 'value' => round($resultat_net, 2), 'color' => $resultat_net >= 0 ? '#2e7d32' : '#c62828']
     ];
     
@@ -219,12 +231,12 @@ try {
         'ca_net' => $mkCascade($ca_net, 'Chiffre d\'Affaires Net (comptes 70)', '#2196f3'),
         'production' => $mkCascade($production, 'Production de l\'exercice (70+71+72)', '#42a5f5'),
         'marge_production' => $mkCascade($marge_production, 'Marge de Production = Production - (601+602±603)', $marge_production >= 0 ? '#4caf50' : '#f44336'),
-        'valeur_ajoutee' => $mkCascade($valeur_ajoutee, 'Valeur Ajoutée = Marge Prod. - (61+62)', $valeur_ajoutee >= 0 ? '#4caf50' : '#f44336'),
+        'valeur_ajoutee' => $mkCascade($valeur_ajoutee, 'VA = MC + Marge Prod. - Autres achats (604-606) - Services ext. (61+62-627)', $valeur_ajoutee >= 0 ? '#4caf50' : '#f44336'),
         'ebe' => $mkCascade($ebe, 'EBE (EBITDA) = VA + 74 - 63 - 64', $ebe >= 0 ? '#26a69a' : '#f44336'),
-        'resultat_exploitation' => $mkCascade($resultat_exploitation, 'Résultat d\'Exploitation = EBE - Dotations', $resultat_exploitation >= 0 ? '#5c6bc0' : '#f44336'),
-        'resultat_financier' => $mkCascade($resultat_financier, 'Résultat Financier = 76 - 66', $resultat_financier >= 0 ? '#66bb6a' : '#ef5350'),
-        'rcai' => $mkCascade($rcai, 'Résultat Courant Avant Impôts = RE + RF', $rcai >= 0 ? '#7e57c2' : '#f44336'),
-        'resultat_net' => $mkCascade($resultat_net, 'Résultat Net = RCAI + Exceptionnel - IS', $resultat_net >= 0 ? '#2e7d32' : '#c62828'),
+        'resultat_exploitation' => $mkCascade($resultat_exploitation, 'REX = EBE + Reprises (75+78+79) - Dotations (65+68)', $resultat_exploitation >= 0 ? '#5c6bc0' : '#f44336'),
+        'resultat_financier' => $mkCascade($resultat_financier, 'Résultat Financier = 76 - (66+627)', $resultat_financier >= 0 ? '#66bb6a' : '#ef5350'),
+        'rcai' => $mkCascade($rcai, 'Résultat Courant Avant Impôts = REX + RF', $rcai >= 0 ? '#7e57c2' : '#f44336'),
+        'resultat_net' => $mkCascade($resultat_net, 'Résultat Net = RCAI + Except. - IS', $resultat_net >= 0 ? '#2e7d32' : '#c62828'),
         'caf' => $mkCascade($caf, 'CAF = RN + Dotations - Reprises + VNC - Prod. Cessions', $caf >= 0 ? '#00838f' : '#c62828')
     ];
     
@@ -254,11 +266,14 @@ try {
         'detail_charges' => [
             'achats_matieres' => round($achats_mp, 2),
             'achats_marchandises' => round($achats_marchandises, 2),
+            'autres_achats_externes' => round($autres_achats_ext, 2),
             'services_exterieurs' => round($services_ext, 2),
             'impots_taxes' => round($impots_taxes, 2),
             'charges_personnel' => round($charges_personnel, 2),
             'charges_financieres' => round($charges_financieres, 2),
             'dotations_amortissements' => round($dotations_amort, 2),
+            'autres_produits_exploitation' => round($autres_produits_exploit, 2),
+            'autres_charges_exploitation' => round($autres_charges_exploit, 2),
         ],
         'nb_ecritures' => (int)$stats['cnt'],
         'balance' => $ecart < 0.01 ? 'OK' : 'WARN',

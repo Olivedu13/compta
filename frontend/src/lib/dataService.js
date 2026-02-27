@@ -134,6 +134,15 @@ export const fetchExerciceData = async (exercice) => {
   const marginRate = ca > 0 ? ((ca - achats) / ca) * 100 : 0;
   const breakEvenPoint = seuil.seuil || 0;
 
+  // Construction des détails par catégorie à partir des comptes deep-dive
+  const buildDetails = (comptes, filter) =>
+    (comptes || [])
+      .filter(filter)
+      .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))
+      .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde));
+
+  const parCompte = expenses?.par_compte || [];
+
   return {
     year: exercice,
     revenue: ca,
@@ -143,10 +152,12 @@ export const fetchExerciceData = async (exercice) => {
     clientConcentration: 0,
     sig: {
       margeCommerciale: sig.marge_commerciale || 0,
+      margeProduction: sig.marge_production || 0,
       productionExercice: sig.production || 0,
       valeurAjoutee: sig.valeur_ajoutee || 0,
       ebe: ebeVal,
       resultatExploitation: rexVal,
+      resultatFinancier: sig.resultat_financier || 0,
       resultatCourant: rcaiVal,
       resultatExceptionnel: sig.resultat_exceptionnel || 0,
       is: 0,
@@ -199,15 +210,15 @@ export const fetchExerciceData = async (exercice) => {
     topClients: [],
     topSuppliers: [],
     details: {
-      revenue: [],
-      purchases: [],
-      external: [],
-      personnel: [],
-      debt: [],
+      revenue: buildDetails(parCompte, (c) => c.compte_num.startsWith('70')),
+      purchases: buildDetails(parCompte, (c) => c.compte_num.startsWith('60')),
+      external: buildDetails(parCompte, (c) => c.compte_num.startsWith('61') || c.compte_num.startsWith('62')),
+      personnel: buildDetails(parCompte, (c) => c.compte_num.startsWith('64')),
+      debt: buildDetails(parCompte, (c) => c.compte_num.startsWith('66') || c.compte_num.startsWith('627')),
       cash: [],
       assets: [],
-      taxes: [],
-      management: [],
+      taxes: buildDetails(parCompte, (c) => c.compte_num.startsWith('63')),
+      management: buildDetails(parCompte, (c) => c.compte_num.startsWith('65') || c.compte_num.startsWith('68')),
       stocks: [],
       equity: [],
     },

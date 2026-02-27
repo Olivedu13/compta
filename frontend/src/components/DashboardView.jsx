@@ -409,11 +409,13 @@ const DashboardView = ({ data }) => {
         </div>
         <table className="w-full text-left">
           <tbody className="divide-y divide-slate-100">
-            <SigRow label="Marge Brute (Ventes - Achats)" val={data.sig.margeCommerciale} bold={true} color="text-slate-900" />
             <SigRow label="Production de l'exercice" val={data.sig.productionExercice} />
+            <SigRow label="Marge de Production" val={data.sig.margeProduction} bold={true} color="text-slate-900" />
             <SigRow label="Valeur Ajoutée (VA)" val={data.sig.valeurAjoutee} bold={true} />
             <SigRow label="EBITDA / Excédent Brut (EBE)" val={data.sig.ebe} bold={true} color="text-blue-600" />
             <SigRow label="Résultat d'Exploitation (REX)" val={data.sig.resultatExploitation} />
+            <SigRow label="Résultat Financier" val={data.sig.resultatFinancier} color={(data.sig.resultatFinancier || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'} />
+            <SigRow label="RCAI" val={data.sig.resultatCourant} />
             <SigRow label="Capacité d'Autofinancement (CAF)" val={data.caf} color="text-amber-600" />
             <SigRow
               label="Résultat Net Comptable"
