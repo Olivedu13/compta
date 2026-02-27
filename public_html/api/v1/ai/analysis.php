@@ -149,7 +149,9 @@ XML;
                OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
-               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%'
+               OR libelle_ecriture LIKE 'INT_R_TS%FRAIS%'
+               OR libelle_ecriture LIKE '%NTÉR%TS%FRAIS%')
         GROUP BY SUBSTR(compte_num, 1, 2), SUBSTR(compte_num, 1, 3)
     ");
     $exclStmt->execute([$exercice]);

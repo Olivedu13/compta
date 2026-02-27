@@ -102,14 +102,18 @@ try {
                OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
-               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%')
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%'
+               OR libelle_ecriture LIKE 'INT_R_TS%FRAIS%'
+               OR libelle_ecriture LIKE '%NTÉR%TS%FRAIS%')
         GROUP BY SUBSTR(compte_num, 1, 1), SUBSTR(compte_num, 1, 2), SUBSTR(compte_num, 1, 3)
     ");
     $exclStmt->execute([$exercice]);
+    $totalDoublonsExclus = 0;
     while ($row = $exclStmt->fetch(PDO::FETCH_ASSOC)) {
         $d = (float)$row['total_debit'];
         $c = (float)$row['total_credit'];
         $solde = $d - $c;
+        $totalDoublonsExclus += $solde;
         if (isset($soldes1[$row['classe']])) $soldes1[$row['classe']] -= $solde;
         if (isset($soldes2[$row['racine2']])) $soldes2[$row['racine2']] -= $solde;
         if (isset($soldes3[$row['racine3']])) $soldes3[$row['racine3']] -= $solde;
@@ -120,7 +124,7 @@ try {
     }
 
     // =============================================
-    // BILAN SIMPLIFIÉ
+    // BILAN COMPLET — PCG
     // =============================================
     
     // ACTIF IMMOBILISÉ (classe 2) - Amortissements (28/29)
@@ -139,11 +143,25 @@ try {
     // CRÉANCES CLIENTS (411)
     $creances_clients = $soldes3['411'] ?? 0;
     
-    // AUTRES CRÉANCES (classes 40 hors 401, 44, 46)
-    $autres_creances = ($soldes2['40'] ?? 0) - ($soldes3['401'] ?? 0) + ($soldes2['44'] ?? 0) + ($soldes2['46'] ?? 0);
+    // AUTRES CRÉANCES
+    // Comptes 40 hors 401, 42 (position nette), 44 (position nette), 46, 47 (position nette)
+    $solde_etat_44 = $soldes2['44'] ?? 0;
+    $creance_etat_44 = max(0, $solde_etat_44);
+    $dette_etat_44 = max(0, -$solde_etat_44);
+    $personnel_42 = $soldes2['42'] ?? 0;
+    $creance_personnel = max(0, $personnel_42);
+    $dette_personnel = max(0, -$personnel_42);
+    $comptes_attente_47 = $soldes2['47'] ?? 0;
+    $creance_attente_47 = max(0, $comptes_attente_47);
+    $dette_attente_47 = max(0, -$comptes_attente_47);
+    $autres_creances = ($soldes2['40'] ?? 0) - ($soldes3['401'] ?? 0) 
+                     + $creance_etat_44 + $creance_personnel 
+                     + ($soldes2['46'] ?? 0) + $creance_attente_47;
     
-    // TRÉSORERIE ACTIVE (classe 5)
-    $tresorerie_active = ($soldes2['51'] ?? 0) + ($soldes2['52'] ?? 0) + ($soldes2['53'] ?? 0) + ($soldes2['54'] ?? 0);
+    // TRÉSORERIE ACTIVE (classe 5 hors 519 concours bancaires)
+    // On sépare 519 (concours bancaires) du total 51 pour éviter le double-comptage
+    $tresorerie_active = ($soldes2['51'] ?? 0) - ($soldes3['519'] ?? 0) 
+                       + ($soldes2['52'] ?? 0) + ($soldes2['53'] ?? 0) + ($soldes2['54'] ?? 0);
     
     // ACTIF CIRCULANT
     $actif_circulant = $stocks_net + $creances_clients + $autres_creances + $tresorerie_active;
@@ -151,10 +169,15 @@ try {
     // TOTAL ACTIF
     $total_actif = $actif_immobilise + $actif_circulant;
     
-    // CAPITAUX PROPRES (classe 1 : 10+11+12+13+14+15)
-    // Attention : les capitaux propres sont au crédit (solde négatif en comptabilité)
+    // RÉSULTAT DE L'EXERCICE — utiliser le résultat BRUT (avant exclusion doublons)
+    // pour que le bilan reste équilibré (les doublons affectent aussi les comptes bancaires)
+    // Le résultat corrigé (hors doublons) est utilisé uniquement dans la cascade SIG
+    $resultat_exercice_bilan = -(($soldes1['6'] ?? 0) + $totalDoublonsExclus + ($soldes1['7'] ?? 0));
+    
+    // CAPITAUX PROPRES (classe 1 : 10-15 + Résultat de l'exercice non affecté)
     $capitaux_propres = -(($soldes2['10'] ?? 0) + ($soldes2['11'] ?? 0) + ($soldes2['12'] ?? 0) + 
-                          ($soldes2['13'] ?? 0) + ($soldes2['14'] ?? 0) + ($soldes2['15'] ?? 0));
+                          ($soldes2['13'] ?? 0) + ($soldes2['14'] ?? 0) + ($soldes2['15'] ?? 0))
+                        + $resultat_exercice_bilan;
     
     // DETTES FINANCIÈRES (16+17)
     $dettes_financieres = -(($soldes2['16'] ?? 0) + ($soldes2['17'] ?? 0));
@@ -162,13 +185,18 @@ try {
     // DETTES FOURNISSEURS (401)
     $dettes_fournisseurs = -($soldes3['401'] ?? 0);
     
-    // DETTES FISCALES ET SOCIALES (43+44)
-    $dettes_fiscales = -(($soldes2['43'] ?? 0) + ($soldes2['44'] ?? 0));
+    // DETTES FISCALES ET SOCIALES (43 + 44 si créditeur + 42 si créditeur)
+    $dettes_fiscales = -($soldes2['43'] ?? 0) + $dette_etat_44 + $dette_personnel;
+    
+    // AUTRES DETTES (45 associés, 47 passif, 58 virements internes)
+    $autres_dettes = max(0, -($soldes2['45'] ?? 0))
+                   + $dette_attente_47
+                   + max(0, -($soldes2['58'] ?? 0));
     
     // PASSIF CIRCULANT
-    $passif_circulant = $dettes_fournisseurs + $dettes_fiscales;
+    $passif_circulant = $dettes_fournisseurs + $dettes_fiscales + $autres_dettes;
     
-    // TRÉSORERIE PASSIVE (emprunts CT, 519)
+    // TRÉSORERIE PASSIVE (concours bancaires courants 519)
     $tresorerie_passive = -($soldes3['519'] ?? 0);
     
     // =============================================
@@ -359,8 +387,11 @@ try {
             'dettes_financieres' => round($dettes_financieres, 2),
             'dettes_fournisseurs' => round($dettes_fournisseurs, 2),
             'dettes_fiscales' => round($dettes_fiscales, 2),
+            'autres_dettes' => round($autres_dettes, 2),
             'passif_circulant' => round($passif_circulant, 2),
             'tresorerie_passive' => round($tresorerie_passive, 2),
+            'total_passif' => round($capitaux_propres + $dettes_financieres + $passif_circulant + $tresorerie_passive, 2),
+            'equilibre_bilan' => abs($total_actif - ($capitaux_propres + $dettes_financieres + $passif_circulant + $tresorerie_passive)) < 1 ? 'EQUILIBRE' : 'ECART',
         ],
         
         // EQUILIBRE FINANCIER

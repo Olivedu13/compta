@@ -28,75 +28,174 @@ export const setApiKeys = (keys) => {
 };
 
 /**
- * Génère le prompt d'audit financier
+ * Génère le prompt d'audit financier complet — niveau Big Four
  */
 const buildPrompt = (data, previousData) => {
-  const caEvol = previousData
-    ? ((data.revenue - previousData.revenue) / previousData.revenue * 100).toFixed(1)
-    : 'N/A';
-  const rnEvol = previousData
-    ? ((data.netIncome - previousData.netIncome) / previousData.netIncome * 100).toFixed(1)
-    : 'N/A';
+  const fmt = (v) => (v != null ? Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) : 'N/D');
+  const pct = (v) => (v != null ? Number(v).toFixed(2) : 'N/D');
+  const safe = (v) => (v != null && !isNaN(v) ? v : 0);
 
-  return `
-RÔLE : Tu es un expert-comptable qui produit des diagnostics rigoureux avec une vision DAF et des insights BI.
+  // Évolutions N-1
+  const evol = (n, n1) => {
+    if (!n1 || n1 === 0) return 'N/A';
+    return ((n - n1) / Math.abs(n1) * 100).toFixed(1) + '%';
+  };
 
-DONNÉES - EXERCICE ${data.year} :
-• CA: ${data.revenue.toLocaleString()}€ | EBE: ${data.ebitda.toLocaleString()}€ | RN: ${data.netIncome.toLocaleString()}€ | CAF: ${data.caf.toLocaleString()}€
-• TN: ${data.tn.toLocaleString()}€ | BFR: ${data.bfr.toLocaleString()}€ | FRNG: ${data.frng.toLocaleString()}€
-• DSO: ${Math.round(data.dso)}j | Marge nette: ${data.marginRate.toFixed(2)}% | EBE/CA: ${(data.ebitda / data.revenue * 100).toFixed(2)}%
-${previousData ? `N-1 BASE : CA ${previousData.revenue.toLocaleString()}€ | RN ${previousData.netIncome.toLocaleString()}€
-VARIATION : CA ${caEvol}% | RN ${rnEvol}%` : 'N-1: non disponible (1er exercice)'}
+  const sig = data.sig || {};
+  const r = data.ratios || {};
+  const exp = data.expenseBreakdown || [];
+  const expMap = {};
+  exp.forEach(e => { expMap[e.label] = e.value; });
 
-PRODUCTION ATTENDUE : Audit financier exécutif professionnel (Markdown, 900-1200 mots).
+  // Bloc N-1 si disponible
+  const n1 = previousData;
+  const n1Bloc = n1 ? `
+EXERCICE N-1 (${n1.year}) :
+• CA: ${fmt(n1.revenue)}€ | EBE: ${fmt(n1.ebitda)}€ | RN: ${fmt(n1.netIncome)}€ | CAF: ${fmt(n1.caf)}€
+• TN: ${fmt(n1.tn)}€ | BFR: ${fmt(n1.bfr)}€ | FRNG: ${fmt(n1.frng)}€
+
+VARIATIONS N / N-1 :
+• CA: ${evol(data.revenue, n1.revenue)} | EBE: ${evol(data.ebitda, n1.ebitda)} | RN: ${evol(data.netIncome, n1.netIncome)}
+• CAF: ${evol(data.caf, n1.caf)} | BFR: ${evol(data.bfr, n1.bfr)} | TN: ${evol(data.tn, n1.tn)}
+` : `EXERCICE N-1 : non disponible (1er exercice ou données absentes).`;
+
+  return `RÔLE : Tu es un expert-comptable et analyste financier niveau "Big Four" (Deloitte/PwC/KPMG/EY).
+Tu produis un diagnostic financier complet, rigoureux, factuel et directement exploitable.
+Secteur analysé : commerce de détail — bijouterie/horlogerie/joaillerie.
+
+══════════════════════════════════════════════
+         DONNÉES FINANCIÈRES — EXERCICE ${data.year}
+══════════════════════════════════════════════
+
+─── SOLDES INTERMÉDIAIRES DE GESTION (SIG) ───
+• Chiffre d'affaires (CA)        : ${fmt(data.revenue)}€
+• Marge Commerciale              : ${fmt(sig.margeCommerciale)}€
+• Production de l'exercice       : ${fmt(sig.productionExercice)}€
+• Valeur Ajoutée (VA)            : ${fmt(sig.valeurAjoutee)}€
+• EBE                            : ${fmt(data.ebitda)}€
+• Résultat d'Exploitation (REX)  : ${fmt(sig.resultatExploitation)}€
+• Résultat Financier             : ${fmt(sig.resultatFinancier)}€
+• RCAI                           : ${fmt(sig.resultatCourant)}€
+• Résultat Exceptionnel          : ${fmt(sig.resultatExceptionnel)}€
+• Résultat Net (RN)              : ${fmt(data.netIncome)}€
+• CAF                            : ${fmt(data.caf)}€
+
+─── STRUCTURE FINANCIÈRE (BILAN) ───
+ACTIF :
+• Immobilisations nettes         : ${fmt(data.fixedAssets)}€
+• Stocks                         : ${fmt(data.stocks)}€
+• Créances clients               : ${fmt(data.receivables)}€
+• Trésorerie active              : ${fmt(data.cashPositive)}€
+• Total Actif                    : ${fmt(data.totalAssets)}€
+
+PASSIF :
+• Capitaux propres               : ${fmt(data.equity)}€
+• Dettes financières             : ${fmt(data.debt)}€
+• Dettes fournisseurs            : ${fmt(data.payables)}€
+• Concours bancaires courants    : ${fmt(data.bankOverdraft)}€
+
+─── ÉQUILIBRE FINANCIER ───
+• FRNG (Fonds de Roulement)      : ${fmt(data.frng)}€
+• BFR (Besoin en Fonds de Roul.) : ${fmt(data.bfr)}€  (${pct(safe(data.bfr) / safe(data.revenue) * 365)} jours de CA)
+• Trésorerie Nette (TN)          : ${fmt(data.tn)}€
+
+─── CYCLES D'EXPLOITATION ───
+• DSO (délai clients)            : ${Math.round(safe(data.dso))} jours
+• DPO (délai fournisseurs)       : ${Math.round(safe(data.dpo))} jours
+• Rotation stocks                : ${pct(safe(data.inventoryTurnover))}x/an
+• Cycle de conversion trésorerie : ${Math.round(safe(data.dso) + (safe(data.inventoryTurnover) > 0 ? 360/data.inventoryTurnover : 0) - safe(data.dpo))} jours
+
+─── RATIOS FINANCIERS ───
+• Marge nette (RN/CA)            : ${pct(safe(data.netIncome) / safe(data.revenue) * 100)}%
+• Marge EBE (EBE/CA)             : ${pct(r.operatingMargin)}%
+• CAF/CA                         : ${pct(r.cafOnRevenue)}%
+• Liquidité générale             : ${pct(r.liquidityGeneral)}x
+• Liquidité immédiate            : ${pct(r.liquidityImmediate)}x
+• Solvabilité                    : ${pct(r.solvency)}x
+• Autonomie financière           : ${pct(safe(r.financialAutonomy) * 100)}%
+• Endettement net                : ${pct(r.debtRatio)}%
+• Gearing (dette nette/CP)       : ${pct(r.gearing)}x
+• ROE (retour sur CP)            : ${pct(r.roe)}%
+• ROA (retour sur actifs)        : ${pct(r.roa)}%
+• Couverture charges financières : ${pct(r.interestCoverage)}x
+• Capacité de remboursement      : ${pct(r.repaymentCapacity)} années
+
+─── DÉCOMPOSITION DES CHARGES ───
+• Achats marchandises/MP         : ${fmt(expMap['Achats'])}€
+• Services extérieurs            : ${fmt(expMap['Services'])}€
+• Impôts et taxes                : ${fmt(expMap['Impôts'])}€
+• Charges de personnel           : ${fmt(expMap['Personnel'])}€
+• Dotations & gestion courante   : ${fmt(expMap['Gestion'])}€
+• Charges financières            : ${fmt(expMap['Financier'])}€
+• Total charges                  : ${fmt(data.totalCharges)}€
+
+─── SEUIL DE RENTABILITÉ ───
+• Seuil de rentabilité           : ${fmt(data.breakEvenPoint)}€
+• Marge brute sur coûts variables: ${pct(data.marginRate)}%
+• Score santé global             : ${safe(data.healthScore)}/100
+
+${n1Bloc}
+
+══════════════════════════════════════════════
+         CONSIGNES D'ANALYSE
+══════════════════════════════════════════════
+
+Produis un **audit financier exécutif complet** en Markdown (1200-1800 mots).
 
 STRUCTURE OBLIGATOIRE :
 
-## SYNTHÈSE ÉCLAIR
-Diagnostic 2-3 phrases : positionnement (Saine / À surveiller / Dégradée / Critique), dynamique vs N-1, premiers enjeux stratégiques.
+## 1. SYNTHÈSE EXÉCUTIVE
+Note globale sur 100 avec grille : A (≥80) / B (60-79) / C (40-59) / D (<40).
+Diagnostic 3-4 phrases : positionnement santé (Saine / À surveiller / Dégradée / Critique), dynamique vs N-1, enjeux stratégiques majeurs. Résumé SWOT ultra-condensé (2 forces, 2 faiblesses clés).
 
-## ANALYSE DE RENTABILITÉ
-- Marge nette : benchmark (sain >5%, alerte 2-5%, critique <2%), évolution, causes (prix/coûts).
-- EBE/CA : qualité exploitation avant financier & fiscal.
-- Interprétation N-1 : écarts en € et %, les chiffrer précisément.
-- Si CA > mais RN < : analyser charges fixes, impacts, structure coûts.
+## 2. ANALYSE DE LA RENTABILITÉ & PERFORMANCE
+- Cascade SIG complète : CA → Marge → VA → EBE → REX → RCAI → RN
+- Taux de marge à chaque étage + benchmark bijouterie (marge commerciale >45%, EBE/CA 8-12%, RN/CA >3%)
+- Si écart vs benchmark : quantifier en € et % et identifier les causes (achats/personnel/financier)
+- Évolution N-1 si disponible : chiffrer précisément les écarts
+- CAF et autofinancement : capacité à investir et rembourser ?
 
-## ÉQUILIBRE FINANCIER & TRÉSORERIE
-- Triangle TN/BFR/FRNG : logique, cohérence, cycles.
-- Si TN < BFR : danger court terme, besoin financement.
-- Si FRNG > 0 mais TN < 0 : piège : solide LT, fragile CT.
-- DSO : normal ? Élevé ? Corrélation CA/BFR logique ?
-- CAF/RN : autonomie autofinancement.
+## 3. STRUCTURE FINANCIÈRE & ÉQUILIBRE
+- Triangle FRNG / BFR / TN : cohérence et interprétation
+- Si FRNG > 0 mais TN < 0 : piège classique — solide LT mais fragile CT
+- Qualité du bilan : poids immo, stocks, créances vs CP
+- Ratios de solvabilité et liquidité vs normes (liquidité >1.5, solvabilité >1.2, autonomie >30%)
+- Endettement : gearing, couverture charges financières, capacité de remboursement
 
-## SIGNAUX D'ALERTE & ANOMALIES
-Identifier et hiérarchiser :
-- Incohérences (CA↑ mais RN↓ brutalement).
-- Ratios aberrants (EBE négatif, BFR explosif, DSO >100j).
-- Structures fragiles (marge <2%, EBE insuffisant, TN très négatif).
-- Ruptures (N-1/N dégradation acérée).
+## 4. ANALYSE DU CYCLE D'EXPLOITATION
+- DSO / DPO / rotation stocks : benchmark bijouterie (DSO 30-60j, stocks 4-6 rotations/an)
+- Cycle de conversion de trésorerie : est-il optimal ?
+- Poids des stocks dans l'actif : normal pour bijouterie (30-40% actif) ou excessif ?
+- Corrélation BFR / CA : le BFR croît-il proportionnellement au CA ?
 
-## FACTEURS DE RISQUE (top 5)
-1. Risque trésorerie CT (TN faible/négatif, BFR croissant, DSO élevé).
-2. Risque rentabilité (marges érodées, EBE faible, charges fixes non couverts).
-3. Risque opérationnel (mauvais payeurs ? stocks incontrôlés ?).
-4. Risque croissance (CA monte / TN baisse = endettement croissant implicite).
-5. Dépendance autofinancement (CAF faible, latitude limitée).
+## 5. SIGNAUX D'ALERTE & RED FLAGS
+Identifier et hiérarchiser (🔴 critique / 🟠 vigilance / 🟢 satisfaisant) :
+- Marges érodées ou inversées
+- BFR explosif vs CA
+- TN négative persistante
+- DSO anormalement élevé
+- Stocks immobilisés excessifs
+- Charges financières disproportionnées
+- Incohérence CA↑ / RN↓
 
-## RECOMMANDATIONS OPÉRATIONNELLES (priorisées)
-**Court terme (0-3 mois)** : accélérer recouvrement clients, réduire stocks, optimiser DSO. Impact: trésorerie immédiate (+€ directs).
-**Moyen terme (1-6 mois)** : optimiser marge (réduction coûts variables, prix/mix produits), absorber charges fixes par croissance.
-**Long terme (3-12 mois)** : restructurer charges fixes, financement alternatif (crédit, affacturage, délais fournisseurs).
-**Gouvernance** : mettre en place suivi mensuel KPIs (CA, EBE, TN, DSO, BFR, stock days).
+## 6. RECOMMANDATIONS OPÉRATIONNELLES PRIORISÉES
+Pour chaque recommandation : impact estimé (€ ou %), difficulté de mise en œuvre, délai.
 
-Pour chaque axe : impact estimé (€ ou %), difficulté (faible/moyenne/forte), délai réaliste.
+**🔥 URGENCES (0-3 mois)** : actions cash immédiates (recouvrement, DSO, affacturage, stocks morts)
+**⚡ MOYEN TERME (3-6 mois)** : optimisation marge (mix produit, renégociation achats, réduction charges fixes)
+**🎯 STRATÉGIQUE (6-12 mois)** : restructuration financière, investissements, financement alternatif
 
-STYLE :
-- Langage CAC/expert-comptable : ratios, normes comptables, termes précis.
-- Pas d'hypothèses non fondées (si inconnu, le dire).
-- Pas de redondance inutile (synthétiser, chiffrer).
-- Ton : assertif, direct, légèrement sec, zéro alarmisme.
-- Markdown seul, pas de code.
-- Objectif final : rapport qu'un DAF ou banquier lit avant RDV critique.
+## 7. CONCLUSION & PERSPECTIVES
+Résumé en 3 points clés. Projection tendancielle (si les tendances se maintiennent : scénario favorable/défavorable). Actions prioritaires top 3 pour le dirigeant.
+
+STYLE IMPÉRATIF :
+- Langage expert-comptable : ratios PCG, normes IFRS/PME, termes techniques précis
+- Chaque affirmation justifiée par un chiffre ou un ratio
+- Pas d'hypothèses non fondées — si une donnée manque, le signaler explicitement
+- Ton : assertif, direct, professionnel, zéro alarmisme injustifié
+- Benchmark systématique bijouterie/commerce de détail
+- Markdown pur, pas de blocs de code
+- Objectif : rapport présentable à un DAF, un banquier ou un investisseur
 `;
 };
 
@@ -159,7 +258,7 @@ const tryCopilot = async (prompt) => {
           messages: [
             {
               role: 'system',
-              content: 'Tu es un expert-comptable senior. Produis des diagnostics financiers professionnels, concis, assertifs, sans alarmisme.',
+              content: 'Tu es un expert-comptable et analyste financier senior niveau Big Four (Deloitte/PwC/KPMG/EY), spécialisé dans le commerce de détail bijouterie/horlogerie. Tu produis des diagnostics financiers complets, factuels, chiffrés, avec benchmark sectoriel. Style : assertif, direct, professionnel. Format : Markdown structuré.',
             },
             { role: 'user', content: prompt },
           ],

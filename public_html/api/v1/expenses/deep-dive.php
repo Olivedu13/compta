@@ -95,8 +95,28 @@ try {
 // FUNCTION: Build from ecritures table (full SQL)
 // =============================================
 function buildFromEcritures($db, $exercice, $labels_categories) {
+    // 0. EXCLUSION DES DOUBLONS BANCAIRES 627
+    // Les arrêtés trimestriels reprennent les frais déjà comptés unitairement
+    // Aligné sur sig/simple.php et kpis/financial.php
+    $exclStmt = $db->prepare("
+        SELECT SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) as total_doublons
+        FROM ecritures
+        WHERE exercice = ?
+          AND compte_num LIKE '627%'
+          AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+               OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+               OR UPPER(libelle_ecriture) LIKE 'INT ARRET%'
+               OR libelle_ecriture LIKE 'INT_R_TS%FRAIS%'
+               OR libelle_ecriture LIKE '%NTÉR%TS%FRAIS%')
+    ");
+    $exclStmt->execute([$exercice]);
+    $doublons_627 = (float)$exclStmt->fetchColumn();
+
     // 1. CHARGES PAR CATÉGORIE
     // Reclassification : 627 (frais bancaires) compté en 66 (Financier) au lieu de 62
+    // EXCLUT les doublons bancaires 627 (arrêtés trimestriels)
     $stmt = $db->prepare("
         SELECT 
             CASE WHEN SUBSTR(compte_num, 1, 3) = '627' THEN '66' 
@@ -106,6 +126,16 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
             COUNT(*) as nb_ecritures
         FROM ecritures
         WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
+          AND NOT (
+            compte_num LIKE '627%'
+            AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
+                 OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
+                 OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
+                 OR UPPER(libelle_ecriture) LIKE 'INTERETS FRAIS%'
+                 OR UPPER(libelle_ecriture) LIKE 'INT ARRET%'
+                 OR libelle_ecriture LIKE 'INT_R_TS%FRAIS%'
+                 OR libelle_ecriture LIKE '%NTÉR%TS%FRAIS%')
+          )
         GROUP BY CASE WHEN SUBSTR(compte_num, 1, 3) = '627' THEN '66' 
                       ELSE SUBSTR(compte_num, 1, 2) END
         ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC
