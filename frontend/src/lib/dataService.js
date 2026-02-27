@@ -215,7 +215,6 @@ export const fetchExerciceData = async (exercice) => {
     topSuppliers: [],
     details: {
       revenue: comptesProduits
-        .filter((c) => c.compte_num.startsWith('70') || c.compte_num.startsWith('71') || c.compte_num.startsWith('74'))
         .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))
         .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde)),
       purchases: buildDetails(parCompte, (c) => c.compte_num.startsWith('60')),
