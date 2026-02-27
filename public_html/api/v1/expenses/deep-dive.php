@@ -45,6 +45,9 @@ try {
         '68' => 'Dotations amortissements/provisions',
     ];
     
+    // Comptes 627 (frais bancaires) reclassés de "62" vers "66" (Financier)
+    $RECLASS_627_TO_66 = true;
+    
     // Check if we have meaningful ecritures for this exercice
     $checkStmt = $db->prepare("SELECT COUNT(*) FROM ecritures WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'");
     $checkStmt->execute([$exercice]);
@@ -93,15 +96,18 @@ try {
 // =============================================
 function buildFromEcritures($db, $exercice, $labels_categories) {
     // 1. CHARGES PAR CATÉGORIE
+    // Reclassification : 627 (frais bancaires) compté en 66 (Financier) au lieu de 62
     $stmt = $db->prepare("
         SELECT 
-            SUBSTR(compte_num, 1, 2) as categorie,
+            CASE WHEN SUBSTR(compte_num, 1, 3) = '627' THEN '66' 
+                 ELSE SUBSTR(compte_num, 1, 2) END as categorie,
             SUM(CAST(debit AS REAL)) as total_debit,
             SUM(CAST(credit AS REAL)) as total_credit,
             COUNT(*) as nb_ecritures
         FROM ecritures
         WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
-        GROUP BY SUBSTR(compte_num, 1, 2)
+        GROUP BY CASE WHEN SUBSTR(compte_num, 1, 3) = '627' THEN '66' 
+                      ELSE SUBSTR(compte_num, 1, 2) END
         ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC
     ");
     $stmt->execute([$exercice]);

@@ -72,6 +72,9 @@ try {
     // compte, résultats, intérêts/frais) qui reprennent les frais déjà
     // comptés individuellement → double comptage sur comptes 627/661.
     // =============================================
+    // EXCLUSION DES DOUBLONS BANCAIRES — uniquement comptes 627
+    // Les arrêtés trimestriels reprennent les frais déjà comptés unitairement
+    // On n'exclut PAS les comptes 661 car ce sont des intérêts d'emprunt légitimes
     $exclStmt = $db->prepare("
         SELECT 
             SUBSTR(compte_num, 1, 2) as racine2,
@@ -80,7 +83,7 @@ try {
             SUM(CAST(credit AS REAL)) as total_credit
         FROM ecritures
         WHERE exercice = ?
-          AND (compte_num LIKE '627%' OR compte_num LIKE '661%')
+          AND compte_num LIKE '627%'
           AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
                OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
@@ -96,6 +99,10 @@ try {
         if (isset($soldes2[$row['racine2']])) $soldes2[$row['racine2']] -= $solde;
         if (isset($soldes3[$row['racine3']])) $soldes3[$row['racine3']] -= $solde;
     }
+
+    // RECLASSIFICATION : 627 (frais bancaires) de Services Ext. (62) → Financier (66)
+    // Le compte 627 est comptablement en 62, mais analytiquement c'est une charge financière
+    $frais_bancaires_627 = $soldes3['627'] ?? 0; // Déjà net des doublons exclus ci-dessus
 
     // =============================================
     // CASCADE SIG PCG 2025 — Bijouterie
@@ -121,8 +128,9 @@ try {
     // 5. MARGE DE PRODUCTION
     $marge_production = $production - $achats_mp;
     
-    // 6. VALEUR AJOUTÉE = Marge Prod. - Services ext. (61+62)
-    $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0);
+    // 6. VALEUR AJOUTÉE = Marge Prod. - Services ext. (61+62 HORS 627)
+    // 627 (frais bancaires) reclassé en charges financières
+    $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0) - $frais_bancaires_627;
     $valeur_ajoutee = $marge_production - $services_ext;
     
     // 7. EBE (EBITDA) = VA + Subventions (74) - Impôts (63) - Personnel (64)
@@ -136,9 +144,10 @@ try {
     $autres_charges_exploit = ($soldes2['65'] ?? 0) + ($soldes2['68'] ?? 0);
     $resultat_exploitation = $ebe + $autres_produits_exploit - $autres_charges_exploit;
     
-    // 9. RÉSULTAT FINANCIER = Produits fin. (76) - Charges fin. (66)
+    // 9. RÉSULTAT FINANCIER = Produits fin. (76) - Charges fin. (66 + 627)
+    // 627 reclassé en charges financières
     $produits_financiers = -($soldes2['76'] ?? 0);
-    $charges_financieres = $soldes2['66'] ?? 0;
+    $charges_financieres = ($soldes2['66'] ?? 0) + $frais_bancaires_627;
     $resultat_financier = $produits_financiers - $charges_financieres;
     
     // 10. RCAI

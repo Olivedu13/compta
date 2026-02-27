@@ -95,6 +95,7 @@ export const fetchExerciceData = async (exercice) => {
   const impots = catMap['63'] || dc.impots_taxes || 0;
   const personnelVal = catMap['64'] || dc.charges_personnel || 0;
   const gestion = (catMap['65'] || 0) + (catMap['68'] || dc.dotations_amortissements || 0);
+  // Financier = 66 + 627 (frais bancaires reclassés par l'API)
   const financier = catMap['66'] || dc.charges_financieres || 0;
 
   // Trésorerie nette
