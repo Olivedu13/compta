@@ -337,6 +337,25 @@ export const analyzeWithAI = async (data, previousData) => {
 
   if (!apiKeys.gemini && !apiKeys.copilot) return manualFallback();
 
+  // Détection clé révoquée / invalide
+  const errStr = (geminiError || '') + (copilotError || '');
+  if (errStr.includes('leaked') || errStr.includes('API_KEY_INVALID') || errStr.includes('invalid')) {
+    return {
+      text: `## ⚠️ Clé API Gemini Révoquée
+
+Votre clé API a été **invalidée par Google** (signalée comme fuitée car présente sur un dépôt public GitHub).
+
+### Comment corriger :
+1. Allez sur **[Google AI Studio](https://aistudio.google.com/app/apikey)**
+2. Supprimez l'ancienne clé
+3. Cliquez **"Create API Key"** pour en créer une nouvelle
+4. Collez-la dans les **Paramètres** (⚙️) de cette application
+
+> ⏱️ Cela prend 30 secondes. La clé est gratuite (1500 requêtes/jour).`,
+      modelUsed: 'Clé API invalide',
+    };
+  }
+
   const errorMsg = copilotError || geminiError || 'IA_FAILED';
   throw new Error(errorMsg);
 };

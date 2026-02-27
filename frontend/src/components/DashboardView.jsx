@@ -196,6 +196,28 @@ const DashboardView = ({ data }) => {
             })
           }
         />
+        <KpiCard
+          label="Coût Horaire"
+          value={`${(data.coutHoraire || 0).toFixed(2)} €/h`}
+          detail={`${(data.coutMinute || 0).toFixed(2)} €/min · Base 1 607h`}
+          icon="fa-clock"
+          color="rose"
+          onClick={() =>
+            setModal({
+              title: 'Coût Horaire & Minute — Charges de Personnel',
+              formula: {
+                label: `Coût = Total Personnel / 1 607h légales`,
+                parts: [
+                  { label: 'Total Charges Personnel (64x)', value: data.totalPersonnel, operator: '+' },
+                  { label: 'Base Heures Annuelles', value: data.baseHeures, operator: '/' },
+                  { label: 'Coût Horaire (€/h)', value: data.coutHoraire, operator: '=' },
+                  { label: 'Coût Minute (€/min = horaire ÷ 60)', value: data.coutMinute, operator: '=' },
+                ],
+              },
+              items: data.details.personnel,
+            })
+          }
+        />
       </div>
 
       {/* Separator */}

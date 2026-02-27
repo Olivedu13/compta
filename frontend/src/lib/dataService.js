@@ -126,6 +126,12 @@ export const fetchExerciceData = async (exercice) => {
   const rexVal = sig.resultat_exploitation || 0;
   const rcaiVal = sig.rcai || 0;
 
+  // Coût horaire / minute (base 1607h légales)
+  const BASE_HEURES_ANNUELLES = 1607;
+  const totalPersonnel = Math.abs(personnelVal);
+  const coutHoraire = totalPersonnel > 0 ? totalPersonnel / BASE_HEURES_ANNUELLES : 0;
+  const coutMinute = coutHoraire / 60;
+
   // Données mensuelles (pas dispo via API — on construit un placeholder vide)
   const monthly = {};
   for (let m = 1; m <= 12; m++) monthly[m] = { revenue: 0, expenses: 0, net: 0 };
@@ -211,6 +217,11 @@ export const fetchExerciceData = async (exercice) => {
       { label: 'Gestion', value: Math.abs(gestion), color: '#10b981' },
       { label: 'Financier', value: Math.abs(financier), color: '#06b6d4' },
     ],
+    // Coût horaire / minute
+    coutHoraire,
+    coutMinute,
+    totalPersonnel,
+    baseHeures: BASE_HEURES_ANNUELLES,
     topClients: [],
     topSuppliers: [],
     details: {
