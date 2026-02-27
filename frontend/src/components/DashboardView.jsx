@@ -199,17 +199,19 @@ const DashboardView = ({ data }) => {
         <KpiCard
           label="Coût Horaire"
           value={`${(data.coutHoraire || 0).toFixed(2)} €/h`}
-          detail={`${(data.coutMinute || 0).toFixed(2)} €/min · Base 1 607h`}
+          detail={`${(data.coutMinute || 0).toFixed(2)} €/min · ${data.nbPersonnes || 11} pers. × 1 607h`}
           icon="fa-clock"
           color="rose"
           onClick={() =>
             setModal({
               title: 'Coût Horaire & Minute — Charges de Personnel',
               formula: {
-                label: `Coût = Total Personnel / 1 607h légales`,
+                label: `Coût = Total Personnel / (${data.nbPersonnes || 11} personnes × 1 607h)`,
                 parts: [
                   { label: 'Total Charges Personnel (64x)', value: data.totalPersonnel, operator: '+' },
-                  { label: 'Base Heures Annuelles', value: data.baseHeures, operator: '/' },
+                  { label: `Effectif (${data.nbPersonnes || 11} personnes)`, value: data.nbPersonnes || 11, operator: '×' },
+                  { label: 'Heures légales / personne', value: data.baseHeures, operator: '×' },
+                  { label: `Total heures (${(data.totalHeures || 0).toLocaleString('fr-FR')}h)`, value: data.totalHeures, operator: '/' },
                   { label: 'Coût Horaire (€/h)', value: data.coutHoraire, operator: '=' },
                   { label: 'Coût Minute (€/min = horaire ÷ 60)', value: data.coutMinute, operator: '=' },
                 ],

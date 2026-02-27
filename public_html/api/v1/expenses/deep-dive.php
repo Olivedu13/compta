@@ -181,8 +181,8 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
             'montant' => round((float)$cd['montant'], 2),
             'nb_ecritures' => (int)$cd['nb_ecritures'],
             'pct_total' => $total_charges > 0 ? round(((float)$cd['montant'] / $total_charges) * 100, 1) : 0,
-            'premiere' => $cd['premiere_ecriture'],
-            'derniere' => $cd['derniere_ecriture'],
+            'premiere' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $cd['premiere_ecriture']),
+            'derniere' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $cd['derniere_ecriture']),
         ];
     }
     
@@ -211,18 +211,21 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
             'montant' => round((float)$f['montant'], 2),
             'pct_total' => $total_charges > 0 ? round(((float)$f['montant'] / $total_charges) * 100, 1) : 0,
             'nb_factures' => (int)$f['nb_factures'], 'nb_pieces' => (int)$f['nb_pieces'],
-            'premiere_facture' => $f['premiere_facture'], 'derniere_facture' => $f['derniere_facture'],
+            'premiere_facture' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $f['premiere_facture']),
+            'derniere_facture' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $f['derniere_facture']),
             'comptes' => $f['comptes_utilises'],
         ];
     }
     
-    // 4. ÉVOLUTION MENSUELLE
+    // 4. ÉVOLUTION MENSUELLE (charges classe 6)
+    // Format mois: SUBSTR sur dates YYYYMMDD → YYYY-MM
     $stmt = $db->prepare("
-        SELECT SUBSTR(ecriture_date, 1, 7) as mois, SUBSTR(compte_num, 1, 2) as categorie,
+        SELECT SUBSTR(ecriture_date, 1, 4) || '-' || SUBSTR(ecriture_date, 5, 2) as mois,
+            SUBSTR(compte_num, 1, 2) as categorie,
             SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) as montant, COUNT(*) as nb_ecritures
         FROM ecritures
         WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
-        GROUP BY SUBSTR(ecriture_date, 1, 7), SUBSTR(compte_num, 1, 2)
+        GROUP BY SUBSTR(ecriture_date, 1, 4) || '-' || SUBSTR(ecriture_date, 5, 2), SUBSTR(compte_num, 1, 2)
         ORDER BY mois, categorie
     ");
     $stmt->execute([$exercice]);
@@ -237,6 +240,21 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
         $evolution_mensuelle[$mois]['categories'][$e['categorie']] = round($montant, 2);
     }
     $evolution_mensuelle = array_values($evolution_mensuelle);
+
+    // 4b. CA MENSUEL (classe 7 = produits)
+    $stmt = $db->prepare("
+        SELECT SUBSTR(ecriture_date, 1, 4) || '-' || SUBSTR(ecriture_date, 5, 2) as mois,
+            SUM(CAST(credit AS REAL) - CAST(debit AS REAL)) as ca
+        FROM ecritures
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '7'
+        GROUP BY SUBSTR(ecriture_date, 1, 4) || '-' || SUBSTR(ecriture_date, 5, 2)
+        ORDER BY mois
+    ");
+    $stmt->execute([$exercice]);
+    $ca_mensuel = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $ca_mensuel[$row['mois']] = round((float)$row['ca'], 2);
+    }
     
     // 5. VARIATIONS ATYPIQUES
     $variations_atypiques = detectVariations($evolution_mensuelle, $labels_categories);
@@ -341,6 +359,34 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
             'nb_ecritures' => (int)$cd['nb_ecritures'],
         ];
     }
+
+    // 11. EFFECTIF — nombre de salariés
+    // Compte 641 = salaires bruts. On compte les tiers distincts si renseignés.
+    // Sinon, fallback = 10 salariés (valeur paramétrable).
+    // +1 pour le dirigeant si rémunéré (comptes 642/644)
+    $DEFAULT_NB_SALARIES = 10;
+    
+    $stmt = $db->prepare("
+        SELECT COUNT(DISTINCT lib_tiers) as nb_tiers_salaires
+        FROM ecritures
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 3) = '641'
+          AND lib_tiers IS NOT NULL AND lib_tiers != ''
+    ");
+    $stmt->execute([$exercice]);
+    $nb_tiers = (int)$stmt->fetchColumn();
+    
+    $nb_salaries = $nb_tiers > 0 ? $nb_tiers : $DEFAULT_NB_SALARIES;
+    
+    // Vérifier si le dirigeant est rémunéré (642xx ou 644xx — ex: 64420000 REMUNERATION POQUET)
+    $stmt = $db->prepare("SELECT COUNT(*) FROM ecritures WHERE exercice = ? AND (SUBSTR(compte_num, 1, 3) = '642' OR SUBSTR(compte_num, 1, 3) = '644')");
+    $stmt->execute([$exercice]);
+    $has_dirigeant = (int)$stmt->fetchColumn() > 0;
+    
+    $effectif = [
+        'nb_salaries' => $nb_salaries,
+        'has_dirigeant' => $has_dirigeant,
+        'total_personnes' => $nb_salaries + ($has_dirigeant ? 1 : 0),
+    ];
     
     return [
         'exercice' => $exercice,
@@ -360,6 +406,8 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
         'comptes_produits' => $comptes_produits,
         'comptes_stocks' => $comptes_stocks,
         'comptes_tresorerie' => $comptes_tresorerie,
+        'ca_mensuel' => $ca_mensuel,
+        'effectif' => $effectif,
     ];
 }
 

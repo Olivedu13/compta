@@ -126,15 +126,27 @@ export const fetchExerciceData = async (exercice) => {
   const rexVal = sig.resultat_exploitation || 0;
   const rcaiVal = sig.rcai || 0;
 
-  // Coût horaire / minute (base 1607h légales)
+  // Coût horaire / minute (base 1607h légales × effectif)
   const BASE_HEURES_ANNUELLES = 1607;
   const totalPersonnel = Math.abs(personnelVal);
-  const coutHoraire = totalPersonnel > 0 ? totalPersonnel / BASE_HEURES_ANNUELLES : 0;
+  // Effectif : depuis l'API si disponible, sinon 10 salariés + 1 dirigeant = 11
+  const effectifAPI = expenses?.effectif;
+  const nbPersonnes = effectifAPI?.total_personnes || 11; // 10 salariés + 1 dirigeant
+  const totalHeures = BASE_HEURES_ANNUELLES * nbPersonnes;
+  const coutHoraire = totalPersonnel > 0 ? totalPersonnel / totalHeures : 0;
   const coutMinute = coutHoraire / 60;
 
-  // Données mensuelles (pas dispo via API — on construit un placeholder vide)
+  // Données mensuelles réelles depuis l'API
+  const caMensuel = expenses?.ca_mensuel || {};
+  const evolMensuelle = expenses?.evolution_mensuelle || [];
   const monthly = {};
-  for (let m = 1; m <= 12; m++) monthly[m] = { revenue: 0, expenses: 0, net: 0 };
+  for (let m = 1; m <= 12; m++) {
+    const moisKey = `${exercice}-${String(m).padStart(2, '0')}`;
+    const charges = evolMensuelle.find((e) => e.mois === moisKey);
+    const rev = caMensuel[moisKey] || 0;
+    const exp = charges ? Math.abs(charges.total) : 0;
+    monthly[m] = { revenue: rev, expenses: exp, net: rev - exp };
+  }
 
   // Ratios
   const marginRate = ca > 0 ? ((ca - achats) / ca) * 100 : 0;
@@ -221,9 +233,15 @@ export const fetchExerciceData = async (exercice) => {
     coutHoraire,
     coutMinute,
     totalPersonnel,
+    nbPersonnes,
+    totalHeures,
     baseHeures: BASE_HEURES_ANNUELLES,
     topClients: [],
-    topSuppliers: [],
+    topSuppliers: (expenses?.par_fournisseur || []).slice(0, 10).map((f) => ({
+      nom: f.nom || 'Non identifié',
+      montant: Math.abs(f.montant || 0),
+      nbFactures: f.nb_factures || 0,
+    })),
     details: {
       revenue: comptesProduits
         .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))

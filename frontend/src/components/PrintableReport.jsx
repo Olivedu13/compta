@@ -211,7 +211,7 @@ ${content.innerHTML}
           <KpiRow label="Point Mort" value={fmt(data.breakEvenPoint)} />
           <KpiRow label="Trésorerie Nette" value={fmt(tn)} highlight />
           <KpiRow label="Marge Nette" value={pct(margeNette)} highlight />
-          <KpiRow label="Coût Horaire" value={`${(data.coutHoraire || 0).toFixed(2)} €/h`} detail="Base 1 607h" />
+          <KpiRow label="Coût Horaire" value={`${(data.coutHoraire || 0).toFixed(2)} €/h`} detail={`${data.nbPersonnes || 11} pers. × 1 607h`} />
           <KpiRow label="Coût Minute" value={`${(data.coutMinute || 0).toFixed(2)} €/min`} detail={`Personnel: ${fmt(data.totalPersonnel)}`} />
         </div>
 
