@@ -1,5 +1,11 @@
 .env
 .env.local
+.env.production
+.env.development
+frontend/.env.production
+frontend/.env.development
+frontend/.env.local
+frontend/.env
 node_modules/
 dist/
 .DS_Store

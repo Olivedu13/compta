@@ -50,6 +50,15 @@ const buildPrompt = (data, previousData) => {
   const expMap = {};
   exp.forEach(e => { expMap[e.label] = e.value; });
 
+  // Détails par poste (top comptes)
+  const details = data.details || {};
+  const detailBlock = (label, items) => {
+    if (!items || items.length === 0) return '';
+    return items.slice(0, 10).map(i =>
+      `  ${i.code} ${(i.libelle || '').padEnd(35).substring(0, 35)} : ${fmt(Math.abs(i.solde))}€`
+    ).join('\n');
+  };
+
   // Bloc N-1 si disponible
   const n1 = previousData;
   const n1Bloc = n1 ? `
@@ -132,6 +141,33 @@ PASSIF :
 • Charges financières            : ${fmt(expMap['Financier'])}€
 • Total charges                  : ${fmt(data.totalCharges)}€
 
+─── COÛT HORAIRE / MINUTE ───
+• Effectif                       : ${data.nbPersonnes || 11} personnes (salariés + dirigeant)
+• Base heures / personne         : 1 607h légales
+• Total heures                   : ${fmt(data.totalHeures)}h
+• Coût horaire                   : ${(data.coutHoraire || 0).toFixed(2)}€/h
+• Coût minute                    : ${(data.coutMinute || 0).toFixed(2)}€/min
+
+─── DÉTAIL PAR POSTE COMPTABLE (Top comptes par montant) ───
+
+ACHATS & MATIÈRES (classe 60) :
+${detailBlock('Achats', details.purchases)}
+
+SERVICES EXTÉRIEURS (classes 61-62) :
+${detailBlock('Services', details.external)}
+
+CHARGES DE PERSONNEL (classe 64) :
+${detailBlock('Personnel', details.personnel)}
+
+CHARGES FINANCIÈRES & BANCAIRES (classes 66 + 627) :
+${detailBlock('Financier', details.debt)}
+
+IMPÔTS & TAXES (classe 63) :
+${detailBlock('Taxes', details.taxes)}
+
+GESTION COURANTE & AMORT. (classes 65 + 68) :
+${detailBlock('Gestion', details.management)}
+
 ─── SEUIL DE RENTABILITÉ ───
 • Seuil de rentabilité           : ${fmt(data.breakEvenPoint)}€
 • Marge brute sur coûts variables: ${pct(data.marginRate)}%
@@ -143,7 +179,7 @@ ${n1Bloc}
          CONSIGNES D'ANALYSE
 ══════════════════════════════════════════════
 
-Produis un **audit financier exécutif complet** en Markdown (1200-1800 mots).
+Produis un **audit financier exécutif complet** en Markdown (1500-2500 mots).
 
 STRUCTURE OBLIGATOIRE :
 
@@ -181,14 +217,29 @@ Identifier et hiérarchiser (🔴 critique / 🟠 vigilance / 🟢 satisfaisant)
 - Charges financières disproportionnées
 - Incohérence CA↑ / RN↓
 
-## 6. RECOMMANDATIONS OPÉRATIONNELLES PRIORISÉES
+## 6. PRÉCONISATIONS — POSTES À SUPPRIMER / RÉDUIRE / SURVEILLER
+À partir du détail par poste comptable fourni ci-dessus, classer chaque poste significatif dans l'une de ces catégories :
+
+**🔴 À SUPPRIMER ou RÉDUIRE drastiquement** : postes non essentiels, doublons, montants disproportionnés par rapport au CA. Chiffrer l'économie potentielle en €.
+**🟠 À SURVEILLER / RENÉGOCIER** : postes dont le niveau est élevé vs benchmark bijouterie. Proposer un objectif réaliste.
+**🟢 CONFORME** : postes dans les normes du secteur.
+
+Exemples d'analyses attendues :
+- Frais bancaires : comparer le total frais bancaires/financiers au CA (norme < 1.5%)
+- Véhicules (leasing + carburant + péage) : est-ce proportionné à l'activité ?
+- Titres restaurant / primes : vérifier s'il y a des doublons comptables
+- Services extérieurs : honoraires, UPS, télécom — benchmark
+- Cadeaux clients, amendes : pertinence
+Fournir un tableau récapitulatif avec : Poste, Montant, % CA, Verdict (🔴/🟠/🟢), Économie potentielle.
+
+## 7. RECOMMANDATIONS OPÉRATIONNELLES PRIORISÉES
 Pour chaque recommandation : impact estimé (€ ou %), difficulté de mise en œuvre, délai.
 
 **🔥 URGENCES (0-3 mois)** : actions cash immédiates (recouvrement, DSO, affacturage, stocks morts)
 **⚡ MOYEN TERME (3-6 mois)** : optimisation marge (mix produit, renégociation achats, réduction charges fixes)
 **🎯 STRATÉGIQUE (6-12 mois)** : restructuration financière, investissements, financement alternatif
 
-## 7. CONCLUSION & PERSPECTIVES
+## 8. CONCLUSION & PERSPECTIVES
 Résumé en 3 points clés. Projection tendancielle (si les tendances se maintiennent : scénario favorable/défavorable). Actions prioritaires top 3 pour le dirigeant.
 
 STYLE IMPÉRATIF :

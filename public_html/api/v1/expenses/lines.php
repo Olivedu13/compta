@@ -257,8 +257,10 @@ try {
     foreach ($lines as $l) {
         $debit = round((float)$l['debit'], 2);
         $credit = round((float)$l['credit'], 2);
+        $rawDate = $l['ecriture_date'] ?? '';
+        $rawPieceDate = $l['date_piece'] ?? '';
         $formatted[] = [
-            'date' => $l['ecriture_date'] ?? '',
+            'date' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $rawDate),
             'journal' => $l['journal_code'] ?? '',
             'journal_lib' => $l['journal_lib'] ?? '',
             'num' => $l['ecriture_num'] ?? '',
@@ -267,7 +269,7 @@ try {
             'aux_num' => $l['numero_tiers'] ?? '',
             'aux_lib' => $l['lib_tiers'] ?? '',
             'piece' => $l['piece_ref'] ?? '',
-            'piece_date' => $l['date_piece'] ?? '',
+            'piece_date' => preg_replace('/^(\d{4})(\d{2})(\d{2})$/', '$1-$2-$3', $rawPieceDate),
             'libelle' => $l['libelle_ecriture'] ?? '',
             'debit' => $debit,
             'credit' => $credit,

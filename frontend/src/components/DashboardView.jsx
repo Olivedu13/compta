@@ -197,9 +197,9 @@ const DashboardView = ({ data }) => {
           }
         />
         <KpiCard
-          label="Coût Horaire"
-          value={`${(data.coutHoraire || 0).toFixed(2)} €/h`}
-          detail={`${(data.coutMinute || 0).toFixed(2)} €/min · ${data.nbPersonnes || 11} pers. × 1 607h`}
+          label="Coût Minute"
+          value={`${(data.coutMinute || 0).toFixed(2)} €/min`}
+          detail={`${(data.coutHoraire || 0).toFixed(2)} €/h · ${data.nbPersonnes || 11} pers. × 1 607h`}
           icon="fa-clock"
           color="rose"
           onClick={() =>
@@ -209,11 +209,11 @@ const DashboardView = ({ data }) => {
                 label: `Coût = Total Personnel / (${data.nbPersonnes || 11} personnes × 1 607h)`,
                 parts: [
                   { label: 'Total Charges Personnel (64x)', value: data.totalPersonnel, operator: '+' },
-                  { label: `Effectif (${data.nbPersonnes || 11} personnes)`, value: data.nbPersonnes || 11, operator: '×' },
-                  { label: 'Heures légales / personne', value: data.baseHeures, operator: '×' },
-                  { label: `Total heures (${(data.totalHeures || 0).toLocaleString('fr-FR')}h)`, value: data.totalHeures, operator: '/' },
-                  { label: 'Coût Horaire (€/h)', value: data.coutHoraire, operator: '=' },
-                  { label: 'Coût Minute (€/min = horaire ÷ 60)', value: data.coutMinute, operator: '=' },
+                  { label: `Effectif (${data.nbPersonnes || 11} personnes)`, value: data.nbPersonnes || 11, operator: '×', unit: '' },
+                  { label: 'Heures légales / personne', value: data.baseHeures, operator: '×', unit: 'h' },
+                  { label: `Total heures (${(data.totalHeures || 0).toLocaleString('fr-FR')}h)`, value: data.totalHeures, operator: '/', unit: 'h' },
+                  { label: 'Coût Horaire (€/h)', value: data.coutHoraire, operator: '=', unit: '€/h', decimals: 2 },
+                  { label: 'Coût Minute (€/min = horaire ÷ 60)', value: data.coutMinute, operator: '=', unit: '€/min', decimals: 2 },
                 ],
               },
               items: data.details.personnel,
@@ -525,22 +525,24 @@ const DashboardView = ({ data }) => {
                           <span
                             className={`text-2xl font-black tracking-tighter ${part.operator === '=' ? 'text-emerald-400 text-4xl' : 'text-white'}`}
                           >
-                            {part.label.includes('DSO')
-                              ? Math.round(part.value) + ' j'
-                              : part.label.includes('Capacité Remb')
-                                ? part.value.toFixed(1) + ' ans'
-                                : part.label.includes('%')
-                                  ? (part.value * 100).toFixed(2) + '%'
-                                  : part.label.includes('Coefficient') ||
-                                      part.label.includes('Vitesse') ||
-                                      part.label.includes('Ratio') ||
-                                      part.label.includes('Autonomie') ||
-                                      part.label.includes('Endettement') ||
-                                      part.label.includes('Marge') ||
-                                      part.label.includes('ROE') ||
-                                      part.label.includes('Poids')
-                                    ? part.value.toFixed(2)
-                                    : fmt(part.value)}
+                            {part.unit != null
+                              ? (Number(part.value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: part.decimals || 0, maximumFractionDigits: part.decimals || 0 }) + (part.unit ? ' ' + part.unit : '')
+                              : part.label.includes('DSO')
+                                ? Math.round(part.value) + ' j'
+                                : part.label.includes('Capacité Remb')
+                                  ? part.value.toFixed(1) + ' ans'
+                                  : part.label.includes('%')
+                                    ? (part.value * 100).toFixed(2) + '%'
+                                    : part.label.includes('Coefficient') ||
+                                        part.label.includes('Vitesse') ||
+                                        part.label.includes('Ratio') ||
+                                        part.label.includes('Autonomie') ||
+                                        part.label.includes('Endettement') ||
+                                        part.label.includes('Marge') ||
+                                        part.label.includes('ROE') ||
+                                        part.label.includes('Poids')
+                                      ? part.value.toFixed(2)
+                                      : fmt(part.value)}
                           </span>
                         </div>
                       ))}
@@ -581,9 +583,13 @@ const DashboardView = ({ data }) => {
               <span className="text-3xl font-black tracking-tighter">
                 {modal.items
                   ? fmt(modal.items.reduce((s, i) => s + i.solde, 0))
-                  : modal.formula?.parts.find((p) => p.operator === '=')?.label.includes('%')
-                    ? ((modal.formula?.parts.find((p) => p.operator === '=')?.value || 0) * 100).toFixed(2) + '%'
-                    : fmt(modal.formula?.parts.find((p) => p.operator === '=')?.value || 0)}
+                  : (() => {
+                      const last = [...(modal.formula?.parts || [])].reverse().find((p) => p.operator === '=');
+                      if (!last) return '—';
+                      if (last.unit != null) return (Number(last.value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: last.decimals || 0, maximumFractionDigits: last.decimals || 0 }) + (last.unit ? ' ' + last.unit : '');
+                      if (last.label.includes('%')) return ((last.value || 0) * 100).toFixed(2) + '%';
+                      return fmt(last.value || 0);
+                    })()}
               </span>
             </div>
           </div>
