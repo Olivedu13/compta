@@ -140,7 +140,7 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
         FROM ecritures
         WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '6'
         GROUP BY compte_num, compte_lib
-        ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC LIMIT 30
+        ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC
     ");
     $stmt->execute([$exercice]);
     $par_compte = [];
@@ -348,7 +348,7 @@ function buildFromReport($db, $exercice, $labels_categories) {
     // 2. PAR COMPTE: Sort accounts by amount
     usort($allAccounts, function($a, $b) { return $b['solde'] <=> $a['solde']; });
     $par_compte = [];
-    foreach (array_slice($allAccounts, 0, 30) as $acc) {
+    foreach ($allAccounts as $acc) {
         $par_compte[] = [
             'compte_num' => $acc['code'],
             'compte_lib' => $acc['libelle'],
