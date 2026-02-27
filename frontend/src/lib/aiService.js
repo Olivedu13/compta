@@ -198,6 +198,7 @@ STYLE IMPÉRATIF :
 - Ton : assertif, direct, professionnel, zéro alarmisme injustifié
 - Benchmark systématique bijouterie/commerce de détail
 - Markdown pur, pas de blocs de code
+- Ne JAMAIS ajouter de signature, date, nom de cabinet, ou formule de politesse à la fin
 - Objectif : rapport présentable à un DAF, un banquier ou un investisseur
 `;
 };
