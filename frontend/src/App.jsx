@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import parseFEC from './lib/parseFEC';
-import computeSIG from './lib/computeSIG';
+import { fetchAllExercices, uploadFEC, fetchExerciceData } from './lib/dataService';
 import { setApiKeys } from './lib/aiService';
 import DashboardView from './components/DashboardView';
 import ComparisonView from './components/ComparisonView';
@@ -36,47 +35,47 @@ const App = () => {
   }, []);
 
   /**
-   * Synchronise les données depuis le serveur
+   * Charge les données depuis les APIs serveur
    */
-  const syncCloud = async () => {
-    log('Tentative de synchronisation cloud...', 'info');
+  const loadFromAPI = async () => {
+    log('Chargement des données depuis l\'API...', 'info');
     try {
-      const res = await fetch(API_URL);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.settings) {
-          setApiKeys({ gemini: data.settings.api_key_gemini || '', copilot: data.settings.api_key_copilot || '' });
-        }
-        if (data.reports && Array.isArray(data.reports)) {
-          const years = {};
-          data.reports.forEach((r) => {
-            try {
-              const parsed = JSON.parse(r.data_json);
-              if (parsed.year) years[parsed.year] = parsed;
-            } catch {}
-          });
-          const sortedYears = Object.keys(years).map(Number).sort((a, b) => b - a);
-          if (sortedYears.length > 0) {
-            setState((prev) => ({
-              ...prev,
-              isLoaded: true,
-              years,
-              currentYear: prev.currentYear || sortedYears[0],
-              selectedYears: sortedYears,
-            }));
-            log(`${sortedYears.length} exercices récupérés du cloud.`, 'info');
+      // Charge les clés API
+      try {
+        const res = await fetch(API_URL);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings) {
+            setApiKeys({ gemini: data.settings.api_key_gemini || '', copilot: data.settings.api_key_copilot || '' });
           }
         }
+      } catch {}
+
+      // Charge tous les exercices depuis les APIs
+      const years = await fetchAllExercices();
+      const sortedYears = Object.keys(years).map(Number).sort((a, b) => b - a);
+
+      if (sortedYears.length > 0) {
+        setState((prev) => ({
+          ...prev,
+          isLoaded: true,
+          years,
+          currentYear: prev.currentYear || sortedYears[0],
+          selectedYears: sortedYears,
+        }));
+        log(`${sortedYears.length} exercice(s) chargés depuis l'API.`, 'info');
+      } else {
+        log('Aucun exercice disponible.', 'warn');
       }
-    } catch {
-      log('Cloud inaccessible (Mode local activé)', 'warn');
+    } catch (err) {
+      log(`Erreur API : ${err.message}`, 'error');
     }
   };
 
   useEffect(() => {
     if (localStorage.getItem('auditcompta_auth') === 'true') {
       setState((prev) => ({ ...prev, isAuthenticated: true }));
-      syncCloud();
+      loadFromAPI();
     }
   }, []);
 
@@ -102,7 +101,7 @@ const App = () => {
         log('Authentification réussie', 'info');
         localStorage.setItem('auditcompta_auth', 'true');
         setState((prev) => ({ ...prev, isAuthenticated: true }));
-        syncCloud();
+        loadFromAPI();
         return;
       }
 
@@ -116,7 +115,7 @@ const App = () => {
       if (res.ok) {
         localStorage.setItem('auditcompta_auth', 'true');
         setState((prev) => ({ ...prev, isAuthenticated: true }));
-        syncCloud();
+        loadFromAPI();
       } else {
         setAuthError('CODE INVALIDE');
       }
@@ -129,40 +128,31 @@ const App = () => {
   };
 
   /**
-   * Import et analyse d'un fichier FEC
+   * Import FEC : upload vers le serveur puis recharge les données via API
    */
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
-    log(`Analyse du fichier : ${file.name}`, 'info');
+    log(`Upload du fichier : ${file.name}`, 'info');
 
     try {
-      const entries = await parseFEC(file);
-      const years = Array.from(new Set(entries.map((e) => e.Year))).filter((y) => !isNaN(y));
-      const newYears = { ...state.years };
+      // 1. Upload vers le serveur
+      const result = await uploadFEC(file);
+      log(`Import réussi : ${result.count} écritures (exercice ${result.exercice})`, 'info');
 
-      for (const year of years) {
-        const result = computeSIG(entries, year);
-        newYears[year] = result;
-
-        // Sauvegarde cloud en arrière-plan
-        fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(result),
-        }).catch(() => null);
-      }
+      // 2. Recharger les données depuis les APIs
+      log('Rechargement des données...', 'info');
+      const years = await fetchAllExercices();
+      const sortedYears = Object.keys(years).map(Number).sort((a, b) => b - a);
 
       setState((prev) => ({
         ...prev,
         isLoaded: true,
-        years: newYears,
-        currentYear: years[0],
-        selectedYears: Object.keys(newYears)
-          .map(Number)
-          .sort((a, b) => b - a),
+        years,
+        currentYear: result.exercice || sortedYears[0],
+        selectedYears: sortedYears,
       }));
       log('Audit terminé avec succès.', 'info');
     } catch (err) {
