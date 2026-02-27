@@ -85,6 +85,9 @@ try {
     // compte, résultats, intérêts/frais) qui reprennent les frais déjà
     // comptés individuellement → double comptage sur comptes 627/661.
     // =============================================
+    // EXCLUSION DES DOUBLONS BANCAIRES — uniquement comptes 627
+    // Les arrêtés trimestriels reprennent les frais déjà comptés unitairement
+    // On n'exclut PAS les comptes 661 car ce sont des intérêts d'emprunt légitimes
     $exclStmt = $db->prepare("
         SELECT 
             SUBSTR(compte_num, 1, 1) as classe,
@@ -94,7 +97,7 @@ try {
             SUM(CAST(credit AS REAL)) as total_credit
         FROM ecritures
         WHERE exercice = ?
-          AND (compte_num LIKE '627%' OR compte_num LIKE '661%')
+          AND compte_num LIKE '627%'
           AND (UPPER(libelle_ecriture) LIKE '%ARRET%' 
                OR UPPER(libelle_ecriture) LIKE '%RESULTAT ARRET%'
                OR UPPER(libelle_ecriture) LIKE 'INTERETS/FRAIS%'
@@ -172,22 +175,39 @@ try {
     // KPIs FINANCIERS
     // =============================================
     
-    // --- SIG CASCADE (identique à sig/simple.php) ---
+    // --- SIG CASCADE — Aligné sur sig/simple.php ---
+    
+    // RECLASSIFICATION : 627 (frais bancaires) de Services Ext. (62) → Financier (66)
+    $frais_bancaires_627 = $soldes3['627'] ?? 0;
+    
     $ca_net = -($soldes2['70'] ?? 0);
     $production = -(($soldes2['70'] ?? 0) + ($soldes2['71'] ?? 0) + ($soldes2['72'] ?? 0));
+    
+    // Achats matières premières (601+602+603)
     $achats_mp = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['603'] ?? 0);
-    $achats = ($soldes3['601'] ?? 0) + ($soldes3['602'] ?? 0) + ($soldes3['607'] ?? 0); // pour seuil rentabilité
-    $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0);
+    // Autres achats externes (604-609)
+    $autres_achats_ext = ($soldes3['604'] ?? 0) + ($soldes3['605'] ?? 0) + ($soldes3['606'] ?? 0)
+                       + ($soldes3['608'] ?? 0) + ($soldes3['609'] ?? 0);
+    // Achats de marchandises (607)
+    $achats_marchandises = $soldes3['607'] ?? 0;
+    
+    // Marge commerciale = Ventes marchandises (707) - Achats marchandises (607)
+    $ventes_marchandises = -($soldes3['707'] ?? 0);
+    $marge_commerciale = $ventes_marchandises - $achats_marchandises;
+    
+    // Services ext. (61+62) moins 627 reclassé en financier
+    $services_ext = ($soldes2['61'] ?? 0) + ($soldes2['62'] ?? 0) - $frais_bancaires_627;
     $charges_personnel = $soldes2['64'] ?? 0;
     $impots_taxes = $soldes2['63'] ?? 0;
     $dotations = ($soldes3['681'] ?? 0) + ($soldes3['686'] ?? 0) + ($soldes3['687'] ?? 0);
-    $charges_financieres = $soldes2['66'] ?? 0;
+    // Charges financières = 66 + 627 reclassé
+    $charges_financieres = ($soldes2['66'] ?? 0) + $frais_bancaires_627;
     $produits_financiers = -($soldes2['76'] ?? 0);
     $subventions = -($soldes2['74'] ?? 0);
 
-    // Cascade SIG PCG — mêmes formules que sig/simple.php
+    // Cascade SIG PCG — Formules identiques à sig/simple.php
     $marge_production = $production - $achats_mp;
-    $valeur_ajoutee = $marge_production - $services_ext;
+    $valeur_ajoutee = $marge_commerciale + $marge_production - $autres_achats_ext - $services_ext;
     $ebe = $valeur_ajoutee + $subventions - $impots_taxes - $charges_personnel;
     $autres_produits_exploit = -(($soldes2['75'] ?? 0) + ($soldes2['78'] ?? 0) + ($soldes2['79'] ?? 0));
     $autres_charges_exploit = ($soldes2['65'] ?? 0) + ($soldes2['68'] ?? 0);
@@ -217,11 +237,12 @@ try {
     $dso = $ca_net > 0 ? round(($creances_clients / $ca_net) * 365, 1) : 0;
     
     // --- 5. DPO (Days Payable Outstanding) = Dettes Fournisseurs / Achats * 365 ---
-    $total_achats = $achats + $services_ext;
-    $dpo = $total_achats > 0 ? round(($dettes_fournisseurs / $total_achats) * 365, 1) : 0;
+    $total_achats_60x = $achats_mp + $autres_achats_ext + $achats_marchandises;
+    $total_achats_services = $total_achats_60x + $services_ext;
+    $dpo = $total_achats_services > 0 ? round(($dettes_fournisseurs / $total_achats_services) * 365, 1) : 0;
     
     // --- 6. JOURS DE STOCK = Stock / Achats matières * 365 ---
-    $jours_stock = $achats > 0 ? round(($stocks_net / $achats) * 365, 1) : 0;
+    $jours_stock = $total_achats_60x > 0 ? round(($stocks_net / $total_achats_60x) * 365, 1) : 0;
     
     // --- 7. CYCLE DE CONVERSION DE TRÉSORERIE ---
     $cycle_conversion = $dso + $jours_stock - $dpo;
@@ -252,10 +273,12 @@ try {
     $ratio_endettement = $capitaux_propres > 0 ? round($dettes_financieres / $capitaux_propres, 2) : 999;
     
     // --- 14. SEUIL DE RENTABILITÉ ---
-    // Charges fixes = Personnel + impôts + dotations + charges financières
-    $charges_fixes = $charges_personnel + $impots_taxes + $dotations + $charges_financieres;
-    // Charges variables = Achats matières + services ext
-    $charges_variables = $achats + $services_ext;
+    // Charges variables = Tous achats (60x) + Services ext (61+62 hors 627)
+    //   Ce sont les coûts proportionnels au CA
+    $charges_variables = $total_achats_60x + $services_ext;
+    // Charges fixes = Personnel + Impôts + Autres charges exploit (65+68) + Financier (66+627)
+    //   Ce sont les coûts structurels indépendants du volume
+    $charges_fixes = $charges_personnel + $impots_taxes + $autres_charges_exploit + $charges_financieres;
     // Taux de marge sur coûts variables
     $taux_mscv = $ca_net > 0 ? ($ca_net - $charges_variables) / $ca_net : 0;
     $marge_sur_cout_variable = $ca_net - $charges_variables;

@@ -180,6 +180,7 @@ export const fetchExerciceData = async (exercice) => {
     dso: cycles.dso_clients || 0,
     dpo: cycles.dpo_fournisseurs || 0,
     inventoryTurnover: cycles.jours_stock ? 360 / cycles.jours_stock : 0,
+    totalCharges: Math.abs(achats) + Math.abs(services) + Math.abs(impots) + Math.abs(personnelVal) + Math.abs(gestion) + Math.abs(financier),
     breakEvenPoint,
     marginRate,
     ratios: {

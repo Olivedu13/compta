@@ -114,6 +114,30 @@ const DashboardView = ({ data }) => {
           }
         />
         <KpiCard
+          label="Charges Exploit."
+          value={fmt(data.totalCharges)}
+          detail="Total charges exploitation"
+          icon="fa-file-invoice-dollar"
+          color="rose"
+          onClick={() =>
+            setModal({
+              title: 'Détail des Charges d\'Exploitation',
+              formula: {
+                label: 'Total = Achats + Services + Impôts + Personnel + Gestion + Financier',
+                parts: [
+                  { label: 'Achats (60x)', value: data.expenseBreakdown[0].value, operator: '+' },
+                  { label: 'Services Ext (61+62)', value: data.expenseBreakdown[1].value, operator: '+' },
+                  { label: 'Impôts & Taxes (63)', value: data.expenseBreakdown[2].value, operator: '+' },
+                  { label: 'Personnel (64)', value: data.expenseBreakdown[3].value, operator: '+' },
+                  { label: 'Gestion (65+68)', value: data.expenseBreakdown[4].value, operator: '+' },
+                  { label: 'Financier (66+627)', value: data.expenseBreakdown[5].value, operator: '+' },
+                  { label: 'Total Charges', value: data.totalCharges, operator: '=' },
+                ],
+              },
+            })
+          }
+        />
+        <KpiCard
           label="Stocks"
           value={fmt(data.stocks)}
           detail="Valeur inventaire"
