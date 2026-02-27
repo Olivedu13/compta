@@ -278,6 +278,69 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
         if (in_array($cat['code'], $charges_fixes_codes)) $montant_fixes += $cat['montant'];
         elseif (in_array($cat['code'], $charges_variables_codes)) $montant_variables += $cat['montant'];
     }
+
+    // 8. COMPTES PRODUITS (classe 7) — pour détail CA, avoirs, etc.
+    $stmt = $db->prepare("
+        SELECT compte_num, compte_lib,
+            SUM(CAST(credit AS REAL) - CAST(debit AS REAL)) as montant,
+            COUNT(*) as nb_ecritures
+        FROM ecritures
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '7'
+        GROUP BY compte_num, compte_lib
+        ORDER BY SUM(CAST(credit AS REAL) - CAST(debit AS REAL)) DESC
+    ");
+    $stmt->execute([$exercice]);
+    $comptes_produits = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $cd) {
+        $comptes_produits[] = [
+            'compte_num' => $cd['compte_num'],
+            'compte_lib' => $cd['compte_lib'],
+            'montant' => round((float)$cd['montant'], 2),
+            'nb_ecritures' => (int)$cd['nb_ecritures'],
+        ];
+    }
+
+    // 9. COMPTES STOCKS (classe 3) — pour détail stocks
+    $stmt = $db->prepare("
+        SELECT compte_num, compte_lib,
+            SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) as montant,
+            COUNT(*) as nb_ecritures
+        FROM ecritures
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '3'
+        GROUP BY compte_num, compte_lib
+        ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC
+    ");
+    $stmt->execute([$exercice]);
+    $comptes_stocks = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $cd) {
+        $comptes_stocks[] = [
+            'compte_num' => $cd['compte_num'],
+            'compte_lib' => $cd['compte_lib'],
+            'montant' => round((float)$cd['montant'], 2),
+            'nb_ecritures' => (int)$cd['nb_ecritures'],
+        ];
+    }
+
+    // 10. COMPTES TRÉSORERIE (classe 5) — pour détail trésorerie
+    $stmt = $db->prepare("
+        SELECT compte_num, compte_lib,
+            SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) as montant,
+            COUNT(*) as nb_ecritures
+        FROM ecritures
+        WHERE exercice = ? AND SUBSTR(compte_num, 1, 1) = '5'
+        GROUP BY compte_num, compte_lib
+        ORDER BY SUM(CAST(debit AS REAL) - CAST(credit AS REAL)) DESC
+    ");
+    $stmt->execute([$exercice]);
+    $comptes_tresorerie = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $cd) {
+        $comptes_tresorerie[] = [
+            'compte_num' => $cd['compte_num'],
+            'compte_lib' => $cd['compte_lib'],
+            'montant' => round((float)$cd['montant'], 2),
+            'nb_ecritures' => (int)$cd['nb_ecritures'],
+        ];
+    }
     
     return [
         'exercice' => $exercice,
@@ -294,6 +357,9 @@ function buildFromEcritures($db, $exercice, $labels_categories) {
         'par_fournisseur' => $par_fournisseur, 'evolution_mensuelle' => $evolution_mensuelle,
         'variations_atypiques' => $variations_atypiques, 'doublons_factures' => $doublons,
         'structure' => ['fixes' => round($montant_fixes, 2), 'variables' => round($montant_variables, 2)],
+        'comptes_produits' => $comptes_produits,
+        'comptes_stocks' => $comptes_stocks,
+        'comptes_tresorerie' => $comptes_tresorerie,
     ];
 }
 

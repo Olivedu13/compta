@@ -142,6 +142,9 @@ export const fetchExerciceData = async (exercice) => {
       .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde));
 
   const parCompte = expenses?.par_compte || [];
+  const comptesProduits = expenses?.comptes_produits || [];
+  const comptesStocks = expenses?.comptes_stocks || [];
+  const comptesTresorerie = expenses?.comptes_tresorerie || [];
 
   return {
     year: exercice,
@@ -211,16 +214,23 @@ export const fetchExerciceData = async (exercice) => {
     topClients: [],
     topSuppliers: [],
     details: {
-      revenue: buildDetails(parCompte, (c) => c.compte_num.startsWith('70')),
+      revenue: comptesProduits
+        .filter((c) => c.compte_num.startsWith('70') || c.compte_num.startsWith('71') || c.compte_num.startsWith('74'))
+        .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))
+        .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde)),
       purchases: buildDetails(parCompte, (c) => c.compte_num.startsWith('60')),
       external: buildDetails(parCompte, (c) => c.compte_num.startsWith('61') || c.compte_num.startsWith('62')),
       personnel: buildDetails(parCompte, (c) => c.compte_num.startsWith('64')),
       debt: buildDetails(parCompte, (c) => c.compte_num.startsWith('66') || c.compte_num.startsWith('627')),
-      cash: [],
-      assets: [],
+      cash: comptesTresorerie
+        .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))
+        .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde)),
+      assets: buildDetails(parCompte, (c) => c.compte_num.startsWith('2')),
       taxes: buildDetails(parCompte, (c) => c.compte_num.startsWith('63')),
       management: buildDetails(parCompte, (c) => c.compte_num.startsWith('65') || c.compte_num.startsWith('68')),
-      stocks: [],
+      stocks: comptesStocks
+        .map((c) => ({ code: c.compte_num, libelle: c.compte_lib, solde: c.montant }))
+        .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde)),
       equity: [],
     },
     // Données brutes de l'API pour référence
