@@ -130,17 +130,28 @@ PASSIF :
 • Achats marchandises/MP         : ${fmt(expMap['Achats'])}€
 • Services extérieurs            : ${fmt(expMap['Services'])}€
 • Impôts et taxes                : ${fmt(expMap['Impôts'])}€
-• Charges de personnel           : ${fmt(expMap['Personnel'])}€
+• Charges de personnel TOTAL     : ${fmt(expMap['Personnel'])}€
+  └─ Masse salariale (salariés)  : ${fmt(data.masseSalariale || 0)}€
+  └─ Rémunération dirigeant (TNS): ${fmt(data.remDirigeant || 0)}€  ⚠ NON-SALARIÉ (comptes 6442+646)
 • Dotations & gestion courante   : ${fmt(expMap['Gestion'])}€
 • Charges financières            : ${fmt(expMap['Financier'])}€
 • Total charges                  : ${fmt(data.totalCharges)}€
 
+⚠ NOTE IMPORTANTE : Les comptes 6442 (Rémunération Poquet T) et 646 (Charges exploitant)
+sont la rémunération du dirigeant/gérant TNS (Thierry Poquet), PAS des salaires.
+Ils ne doivent pas être analysés comme de la masse salariale.
+Le dirigeant est un TNS (Travailleur Non Salarié). Effectif salarié réel = 10.
+Le dirigeant est la 11ème personne. Cette distinction est essentielle pour :
+le coût horaire moyen salarié, le benchmark masse salariale/CA, et les recommandations.
+
 ─── COÛT HORAIRE / MINUTE ───
-• Effectif                       : ${data.nbPersonnes || 11} personnes (salariés + dirigeant)
+• Effectif total                 : ${data.nbPersonnes || 11} personnes (10 salariés + 1 dirigeant TNS)
 • Base heures / personne         : 1 607h légales
 • Total heures                   : ${fmt(data.totalHeures)}h
-• Coût horaire                   : ${(data.coutHoraire || 0).toFixed(2)}€/h
-• Coût minute                    : ${(data.coutMinute || 0).toFixed(2)}€/min
+• Coût horaire global            : ${(data.coutHoraire || 0).toFixed(2)}€/h
+• Coût minute global             : ${(data.coutMinute || 0).toFixed(2)}€/min
+• Coût horaire salariés seuls    : ${data.masseSalariale && data.totalHeures ? (data.masseSalariale / (1607 * 10)).toFixed(2) : 'N/D'}€/h
+• Coût dirigeant / mois          : ${data.remDirigeant ? fmt(data.remDirigeant / 12) : 'N/D'}€
 
 ─── DÉTAIL PAR POSTE COMPTABLE (Top comptes par montant) ───
 
@@ -246,6 +257,16 @@ Pour chaque recommandation : impact estimé (€ ou %), difficulté de mise en �
 ## 8. CONCLUSION & PERSPECTIVES
 Résumé en 3 points clés. Projection tendancielle (si les tendances se maintiennent : scénario favorable/défavorable). Actions prioritaires top 3 pour le dirigeant.
 
+POINT CLÉ RÉMUNÉRATION DIRIGEANT :
+Les comptes 6442 (Rémunération Poquet T) et 646 (Charges exploitant) ne sont PAS
+des salaires mais la rémunération du dirigeant TNS (Thierry Poquet, gérant).
+Dans ton analyse :
+- Sépare TOUJOURS "masse salariale" (10 salariés) et "rémunération dirigeant" (1 TNS)
+- Le benchmark masse salariale/CA doit s'appliquer aux salariés UNIQUEMENT
+- La rém. dirigeant est un prélèvement sur résultat, pas une charge salariale classique
+- Analyse si la rém. dirigeant est cohérente : comparer au RN, au CA, et au marché
+- Un dirigeant TNS de bijouterie en PACA avec ~2M€ CA : rém. ~70-100k€ = normal
+
 STYLE IMPÉRATIF :
 - Langage expert-comptable : ratios PCG, normes IFRS/PME, termes techniques précis
 - Chaque affirmation justifiée par un chiffre ou un ratio
@@ -325,6 +346,16 @@ STYLE IMPÉRATIF :
 - Utilise des émojis pour les titres uniquement
 - Ne JAMAIS ajouter de signature, date, ou formule de politesse à la fin
 - Ton objectif : que le dirigeant referme ce rapport avec 5 actions claires et l'envie de les exécuter dès demain
+
+POINT CLÉ : les comptes 6442 (Rémunération Poquet T) et 646 (Charges exploitant)
+sont la rémunération de Thierry (le patron, TNS/gérant), PAS des salaires.
+Quand tu parles de "charges de personnel", distingue toujours :
+- La masse salariale des 10 salariés
+- SA rémunération de dirigeant
+Sa rém. n'est pas une charge à "couper" — c'est son revenu de patron. Analyse-la
+comme un prélèvement entrepreneurial. Tu peux challenger son niveau (est-ce qu'il
+se paye assez ? trop ? par rapport au CA et au résultat ?) mais ne la mets JAMAIS
+dans le même sac que les salaires.
 `;
 };
 

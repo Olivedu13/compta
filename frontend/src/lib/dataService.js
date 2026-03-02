@@ -164,6 +164,15 @@ export const fetchExerciceData = async (exercice) => {
   const comptesStocks = expenses?.comptes_stocks || [];
   const comptesTresorerie = expenses?.comptes_tresorerie || [];
 
+  // Séparation rémunération dirigeant vs masse salariale
+  // 642x (rém. dirigeant/gérant), 646 (charges exploitant/TNS) = non-salarié
+  const comptesPersonnel = parCompte.filter((c) => c.compte_num.startsWith('64'));
+  const comptesDirigeant = comptesPersonnel.filter((c) =>
+    c.compte_num.startsWith('6442') || c.compte_num.startsWith('646')
+  );
+  const remDirigeant = comptesDirigeant.reduce((s, c) => s + Math.abs(c.montant || 0), 0);
+  const masseSalariale = totalPersonnel - remDirigeant;
+
   return {
     year: exercice,
     revenue: ca,
@@ -233,6 +242,8 @@ export const fetchExerciceData = async (exercice) => {
     coutHoraire,
     coutMinute,
     totalPersonnel,
+    remDirigeant,
+    masseSalariale,
     nbPersonnes,
     totalHeures,
     baseHeures: BASE_HEURES_ANNUELLES,
@@ -261,6 +272,9 @@ export const fetchExerciceData = async (exercice) => {
         .sort((a, b) => Math.abs(b.solde) - Math.abs(a.solde)),
       equity: [],
     },
+    // Anomalies détectées par l'API deep-dive
+    variationsAtypiques: expenses?.variations_atypiques || [],
+    doublonsFactures: expenses?.doublons_factures || [],
     // Données brutes de l'API pour référence
     _api: { sig, kpis, expenses },
   };
