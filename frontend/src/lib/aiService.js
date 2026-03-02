@@ -31,14 +31,13 @@ export const setApiKeys = (keys) => {
 };
 
 /**
- * Génère le prompt d'audit financier complet — niveau Big Four
+ * Génère le bloc de données financières (partagé entre les prompts)
  */
-const buildPrompt = (data, previousData) => {
+const buildDataBlock = (data, previousData) => {
   const fmt = (v) => (v != null ? Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) : 'N/D');
   const pct = (v) => (v != null ? Number(v).toFixed(2) : 'N/D');
   const safe = (v) => (v != null && !isNaN(v) ? v : 0);
 
-  // Évolutions N-1
   const evol = (n, n1) => {
     if (!n1 || n1 === 0) return 'N/A';
     return ((n - n1) / Math.abs(n1) * 100).toFixed(1) + '%';
@@ -50,7 +49,6 @@ const buildPrompt = (data, previousData) => {
   const expMap = {};
   exp.forEach(e => { expMap[e.label] = e.value; });
 
-  // Détails par poste (top comptes)
   const details = data.details || {};
   const detailBlock = (label, items) => {
     if (!items || items.length === 0) return '';
@@ -59,7 +57,6 @@ const buildPrompt = (data, previousData) => {
     ).join('\n');
   };
 
-  // Bloc N-1 si disponible
   const n1 = previousData;
   const n1Bloc = n1 ? `
 EXERCICE N-1 (${n1.year}) :
@@ -71,10 +68,7 @@ VARIATIONS N / N-1 :
 • CAF: ${evol(data.caf, n1.caf)} | BFR: ${evol(data.bfr, n1.bfr)} | TN: ${evol(data.tn, n1.tn)}
 ` : `EXERCICE N-1 : non disponible (1er exercice ou données absentes).`;
 
-  return `RÔLE : Tu es un expert-comptable et analyste financier niveau "Big Four" (Deloitte/PwC/KPMG/EY).
-Tu produis un diagnostic financier complet, rigoureux, factuel et directement exploitable.
-Secteur analysé : commerce de détail — bijouterie/horlogerie/joaillerie.
-
+  return `
 ══════════════════════════════════════════════
          DONNÉES FINANCIÈRES — EXERCICE ${data.year}
 ══════════════════════════════════════════════
@@ -173,7 +167,17 @@ ${detailBlock('Gestion', details.management)}
 • Marge brute sur coûts variables: ${pct(data.marginRate)}%
 • Score santé global             : ${safe(data.healthScore)}/100
 
-${n1Bloc}
+${n1Bloc}`;
+};
+
+/**
+ * Génère le prompt d'audit financier complet — niveau Big Four
+ */
+const buildPrompt = (data, previousData) => {
+  return `RÔLE : Tu es un expert-comptable et analyste financier niveau "Big Four" (Deloitte/PwC/KPMG/EY).
+Tu produis un diagnostic financier complet, rigoureux, factuel et directement exploitable.
+Secteur analysé : commerce de détail — bijouterie/horlogerie/joaillerie.
+${buildDataBlock(data, previousData)}
 
 ══════════════════════════════════════════════
          CONSIGNES D'ANALYSE
@@ -251,6 +255,76 @@ STYLE IMPÉRATIF :
 - Markdown pur, pas de blocs de code
 - Ne JAMAIS ajouter de signature, date, nom de cabinet, ou formule de politesse à la fin
 - Objectif : rapport présentable à un DAF, un banquier ou un investisseur
+`;
+};
+
+/**
+ * Génère le prompt "CEO Visionnaire" — regard de chef d'entreprise à succès
+ */
+const buildCeoPrompt = (data, previousData) => {
+  return `RÔLE : Tu es un chef d'entreprise chevronné et visionnaire, un serial entrepreneur à succès.
+Tu as bâti et revendu plusieurs entreprises profitables. Tu penses comme Bernard Arnault, Steve Jobs ou Elon Musk appliqué au commerce de détail luxe.
+Tu ne parles PAS comme un comptable. Tu parles comme un patron qui a de l'instinct, de l'expérience, et qui sait transformer une boîte qui stagne en machine à cash.
+Tu tutoies le dirigeant. Tu es direct, cash, parfois provocateur mais toujours bienveillant.
+Secteur : bijouterie/horlogerie/joaillerie — commerce de détail avec atelier.
+${buildDataBlock(data, previousData)}
+
+══════════════════════════════════════════════
+         CONSIGNES — VISION CEO
+══════════════════════════════════════════════
+
+Produis un **rapport stratégique de dirigeant** en Markdown (1500-2500 mots).
+Tu t'adresses directement au patron (Thierry). Tu parles d'homme à homme, de patron à patron.
+
+STRUCTURE OBLIGATOIRE :
+
+## 🎯 MON VERDICT EN 30 SECONDES
+En 3-4 phrases percutantes, dis ce que tu penses vraiment de cette boîte. Pas de langue de bois.
+Donne une note /10 avec ton ressenti de patron. Est-ce que tu rachèterais cette boîte ? Pourquoi ?
+
+## 💰 OÙ EST L'ARGENT QUI FUIT ?
+Analyse chaque ligne de dépense comme si c'était TON argent.
+- Identifie les postes où tu vois du gaspillage, du "confort" ou de l'habitude
+- Chiffre exactement combien tu économiserais sur chaque poste
+- Sois concret : "3 banques pour 2M€ de CA, c'est du délire. J'en garde une, point."
+- Tableau avec : Poste, Ce que tu dépenses, Ce qu'un patron malin dépenserait, Économie
+
+## 🔪 CE QUE JE COUPE DÈS LUNDI MATIN
+Les 5 décisions que tu prendrais dès la première semaine si tu rachetais cette boîte.
+Pour chaque décision : l'action, le montant économisé, et pourquoi c'est non négociable.
+Sois radical mais réaliste.
+
+## 📈 COMMENT JE DOUBLE LE RÉSULTAT EN 12 MOIS
+Plan d'action concret en 3 phases :
+- **Mois 1-3 — SURVIE** : couper le gras, sécuriser la tréso, renégocier tout
+- **Mois 4-6 — OPTIMISATION** : augmenter le panier moyen, le mix produit, la marge
+- **Mois 7-12 — CROISSANCE** : nouveaux canaux (e-commerce, réseaux sociaux, événements VIP), fidélisation, montée en gamme
+
+## 🏆 LE BIJOUTIER QUI GAGNE VS CELUI QUI SURVIT
+Comparaison entre "ce que fait cette entreprise" et "ce que ferait un bijoutier au top".
+Benchmark concret sur : marge, digital, expérience client, gestion des stocks, sourcing.
+
+## 💡 MES 3 IDÉES "OUT OF THE BOX"
+3 idées non conventionnelles pour transformer cette bijouterie :
+- Des idées que l'expert-comptable ne donnerait jamais
+- Inspirées de ce qui marche dans d'autres secteurs (tech, luxe, retail innovant)
+- Chiffre l'impact potentiel de chaque idée
+
+## ⚡ LETTRE AU DIRIGEANT
+Termine par une lettre personnelle de 10-15 lignes, comme un mentor.
+Dis-lui ce qu'il fait bien, ce qu'il doit changer, et donne-lui la motivation pour agir.
+Ton : direct, inspirant, sans condescendance. Tu parles d'égal à égal.
+
+STYLE IMPÉRATIF :
+- Tutoiement obligatoire
+- Langage de patron : "cash", "marge", "levier", "scale", pas de jargon comptable inutile
+- Chaque affirmation chiffrée avec les données fournies
+- Exemples concrets de ce que tu ferais toi, pas des recommandations vagues
+- Tu peux être provocateur ("85k€ de frais bancaires ? Tu finances la retraite de ton banquier ?")
+- Markdown pur, pas de blocs de code
+- Utilise des émojis pour les titres uniquement
+- Ne JAMAIS ajouter de signature, date, ou formule de politesse à la fin
+- Ton objectif : que le dirigeant referme ce rapport avec 5 actions claires et l'envie de les exécuter dès demain
 `;
 };
 
@@ -409,4 +483,35 @@ Votre clé API a été **invalidée par Google** (signalée comme fuitée car pr
 
   const errorMsg = copilotError || geminiError || 'IA_FAILED';
   throw new Error(errorMsg);
+};
+
+/**
+ * Analyse IA en mode CEO Visionnaire
+ */
+export const analyzeWithCEO = async (data, previousData) => {
+  const prompt = buildCeoPrompt(data, previousData);
+  let geminiError, copilotError;
+
+  try {
+    const result = await tryGemini(prompt);
+    if (result) return { ...result, modelUsed: `${result.modelUsed} — Vision CEO` };
+  } catch (err) {
+    geminiError = err?.message;
+  }
+
+  try {
+    const result = await tryCopilot(prompt);
+    if (result) return { ...result, modelUsed: `${result.modelUsed} — Vision CEO` };
+  } catch (err) {
+    copilotError = err?.message;
+  }
+
+  if (!apiKeys.gemini && !apiKeys.copilot) return manualFallback();
+
+  const errStr = (geminiError || '') + (copilotError || '');
+  if (errStr.includes('leaked') || errStr.includes('API_KEY_INVALID') || errStr.includes('invalid')) {
+    return { text: '## ⚠️ Clé API invalide\nVeuillez reconfigurer votre clé Gemini dans les Paramètres.', modelUsed: 'Clé API invalide' };
+  }
+
+  throw new Error(copilotError || geminiError || 'IA_FAILED');
 };

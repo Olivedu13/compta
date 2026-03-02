@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { analyzeWithAI } from '../lib/aiService';
+import { analyzeWithAI, analyzeWithCEO } from '../lib/aiService';
 import ExecSummaryDashboard from './ExecSummaryDashboard';
 
 /**
  * AIAdvisorView - Vue d'audit IA Stratégique (Gemini / Copilot)
  */
-const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult }) => {
+const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult, onCeoResult }) => {
   const [result, setResult] = useState(null);
+  const [ceoResult, setCeoResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ceoLoading, setCeoLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
 
   const runAnalysis = async () => {
@@ -26,9 +28,32 @@ const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult }) => {
     }
   };
 
+  const runCeoAnalysis = async () => {
+    setCeoLoading(true);
+    try {
+      const res = await analyzeWithCEO(data, previousData);
+      setCeoResult(res);
+      if (onCeoResult) onCeoResult(res);
+    } catch {
+      setCeoResult({
+        text: `## Erreur\n\nUne erreur est survenue lors de l'analyse CEO.`,
+        modelUsed: 'Erreur',
+      });
+    } finally {
+      setCeoLoading(false);
+    }
+  };
+
   useEffect(() => {
     runAnalysis();
   }, [data, previousData]);
+
+  // Lancer l'analyse CEO quand on clique sur l'onglet
+  useEffect(() => {
+    if (activeTab === 'ceo' && !ceoResult && !ceoLoading) {
+      runCeoAnalysis();
+    }
+  }, [activeTab]);
 
   /**
    * Renders simple markdown to React elements
@@ -137,6 +162,17 @@ const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult }) => {
               <i className="fa-solid fa-file-lines"></i>
               Rapport Complet IA
             </button>
+            <button
+              onClick={() => setActiveTab('ceo')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'ceo'
+                  ? 'bg-white text-amber-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <i className="fa-solid fa-crown"></i>
+              Vision CEO
+            </button>
           </div>
         </div>
 
@@ -144,16 +180,41 @@ const AIAdvisorView = ({ data, previousData, onOpenSettings, onAiResult }) => {
         <div className="p-8 min-h-[400px]">
           {activeTab === 'summary' ? (
             <ExecSummaryDashboard data={data} previousData={previousData} />
-          ) : loading ? (
+          ) : activeTab === 'report' ? (
+            loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-slate-500 text-sm font-medium">L&apos;IA analyse vos données...</p>
+              </div>
+            ) : (
+              <div className="prose prose-slate max-w-none prose-sm">
+                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-medium">
+                  {renderMarkdown(result?.text || '')}
+                </div>
+              </div>
+            )
+          ) : /* activeTab === 'ceo' */ ceoLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-slate-500 text-sm font-medium">L&apos;IA analyse vos données...</p>
+              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-500 text-sm font-medium"><i className="fa-solid fa-crown text-amber-500 mr-2"></i>Le CEO analyse votre business...</p>
+            </div>
+          ) : ceoResult ? (
+            <div className="prose prose-slate max-w-none prose-sm">
+              <div className="flex items-center gap-2 mb-6 text-[10px] text-amber-600 font-bold uppercase tracking-widest">
+                <i className="fa-solid fa-crown"></i>
+                Analysé par {ceoResult.modelUsed}
+              </div>
+              <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-medium">
+                {renderMarkdown(ceoResult?.text || '')}
+              </div>
             </div>
           ) : (
-            <div className="prose prose-slate max-w-none prose-sm">
-              <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-medium">
-                {renderMarkdown(result?.text || '')}
-              </div>
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <i className="fa-solid fa-crown text-4xl mb-4 text-amber-300"></i>
+              <p className="text-sm font-medium">Cliquez pour lancer l&apos;analyse Vision CEO</p>
+              <button onClick={runCeoAnalysis} className="mt-4 px-6 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-colors">
+                <i className="fa-solid fa-rocket mr-2"></i>Lancer l&apos;analyse
+              </button>
             </div>
           )}
         </div>

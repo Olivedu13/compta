@@ -27,6 +27,7 @@ const App = () => {
   const [showConsole, setShowConsole] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [aiResult, setAiResult] = useState(null);
+  const [ceoResult, setCeoResult] = useState(null);
   const consoleEndRef = useRef(null);
   const API_URL = './api.php';
 
@@ -330,6 +331,7 @@ const App = () => {
               }
               onOpenSettings={() => setShowSettings(true)}
               onAiResult={setAiResult}
+              onCeoResult={setCeoResult}
             />
           )}
         </main>
@@ -347,6 +349,7 @@ const App = () => {
               ]
             }
             aiResult={aiResult}
+            ceoResult={ceoResult}
           />
         )}
 

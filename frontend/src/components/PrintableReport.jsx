@@ -93,7 +93,7 @@ const VerdictBanner = ({ verdict, score, desc }) => {
 };
 
 // ─── Composant principal ───
-const PrintableReport = ({ data, previousData, aiResult, onClose }) => {
+const PrintableReport = ({ data, previousData, aiResult, ceoResult, onClose }) => {
   const printRef = useRef(null);
 
   if (!data) return null;
@@ -435,6 +435,91 @@ ${content.innerHTML}
                     elements.push(<div key={idx} style={{ height: 4 }}></div>);
                   else
                     elements.push(<p key={idx} style={{ marginBottom: 4 }} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
+                }
+                if (inTable) flushTable();
+                return elements;
+              })()}
+            </div>
+          </>
+        )}
+
+        {/* ═══ PAGE CEO : VISION CEO ═══ */}
+        {ceoResult?.text && (
+          <>
+            <div className="page-break"></div>
+            <PrintHeader year={data.year} />
+            <SectionTitle icon="fa-crown" title={`Vision CEO — ${ceoResult.modelUsed || 'Gemini'}`} />
+            <div style={{ fontSize: 11, lineHeight: 1.7, color: '#334155' }}>
+              {(() => {
+                const lines = ceoResult.text.split('\n');
+                const elements = [];
+                let tableRows = [];
+                let inTable = false;
+
+                const renderInline = (text) => {
+                  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                };
+
+                const flushTable = () => {
+                  if (tableRows.length === 0) return;
+                  const headerCells = tableRows[0].split('|').filter(c => c.trim());
+                  const dataRows = tableRows.slice(2);
+                  elements.push(
+                    <table key={`ctbl-${elements.length}`} style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, margin: '8px 0 12px 0', breakInside: 'avoid' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#fffbeb', borderBottom: '2px solid #f59e0b' }}>
+                          {headerCells.map((c, i) => (
+                            <th key={i} style={{ padding: '5px 8px', fontWeight: 800, color: '#92400e', textAlign: 'left', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}
+                              dangerouslySetInnerHTML={{ __html: renderInline(c.trim()) }} />
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dataRows.map((row, ri) => {
+                          const cells = row.split('|').filter(c => c.trim());
+                          return (
+                            <tr key={ri} style={{ borderBottom: '1px solid #fef3c7' }}>
+                              {cells.map((c, ci) => (
+                                <td key={ci} style={{ padding: '4px 8px', fontSize: 10, color: '#334155' }}
+                                  dangerouslySetInnerHTML={{ __html: renderInline(c.trim()) }} />
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                  tableRows = [];
+                  inTable = false;
+                };
+
+                for (let idx = 0; idx < lines.length; idx++) {
+                  const line = lines[idx];
+
+                  if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+                    if (!inTable) inTable = true;
+                    tableRows.push(line.trim());
+                    continue;
+                  } else if (inTable) {
+                    flushTable();
+                  }
+
+                  if (line.startsWith('# '))
+                    elements.push(<h1 key={`c${idx}`} style={{ fontSize: 16, fontWeight: 900, color: '#92400e', marginTop: 20, marginBottom: 8, borderBottom: '1px solid #f59e0b', paddingBottom: 4, textTransform: 'uppercase' }}>{line.substring(2)}</h1>);
+                  else if (line.startsWith('## '))
+                    elements.push(<h2 key={`c${idx}`} style={{ fontSize: 13, fontWeight: 800, color: '#d97706', marginTop: 16, marginBottom: 6, textTransform: 'uppercase', pageBreakAfter: 'avoid' }}>{line.substring(3)}</h2>);
+                  else if (line.startsWith('### '))
+                    elements.push(<h3 key={`c${idx}`} style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginTop: 12, marginBottom: 4 }}>{line.substring(4)}</h3>);
+                  else if (line.match(/^\d+\./))
+                    elements.push(<div key={`c${idx}`} style={{ fontWeight: 700, marginTop: 8, marginBottom: 4, color: '#0f172a' }} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
+                  else if (line.trim().startsWith('- ') || line.trim().startsWith('* '))
+                    elements.push(<div key={`c${idx}`} style={{ marginLeft: 16, marginBottom: 3, display: 'flex', gap: 6, fontSize: 11 }}><span style={{ color: '#f59e0b', flexShrink: 0 }}>•</span><span dangerouslySetInnerHTML={{ __html: renderInline(line.replace(/^\s*[-*]\s*/, '')) }} /></div>);
+                  else if (line.trim().startsWith('> '))
+                    elements.push(<div key={`c${idx}`} style={{ borderLeft: '3px solid #f59e0b', paddingLeft: 12, margin: '6px 0', color: '#92400e', fontStyle: 'italic', fontSize: 10 }} dangerouslySetInnerHTML={{ __html: renderInline(line.substring(2)) }} />);
+                  else if (!line.trim())
+                    elements.push(<div key={`c${idx}`} style={{ height: 4 }}></div>);
+                  else
+                    elements.push(<p key={`c${idx}`} style={{ marginBottom: 4 }} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
                 }
                 if (inTable) flushTable();
                 return elements;
